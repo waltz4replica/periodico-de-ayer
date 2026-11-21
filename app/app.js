@@ -1,0 +1,492 @@
+"use strict";
+
+/* ============================================================
+   Mi Periódico — lector de noticias diario
+   Lee las ediciones que genera scripts/fetch_news.py en data/
+   ============================================================ */
+
+const PAGE = 24;
+const TZ = "Europe/Madrid";
+
+const $ = (sel) => document.querySelector(sel);
+const els = {
+  feed: $("#feed"),
+  days: $("#days"),
+  sources: $("#sources"),
+  dateline: $("#dateline"),
+  footer: $("#footer"),
+  sentinel: $("#sentinel"),
+  search: $("#search"),
+  searchInput: $("#search-input"),
+  btnSearch: $("#btn-search"),
+  btnSaved: $("#btn-saved"),
+  savedCount: $("#saved-count"),
+  filters: $("#filters"),
+  toast: $("#toast"),
+  toastText: $("#toast-text"),
+  toastAction: $("#toast-action"),
+  install: $("#install"),
+  installText: $("#install-text"),
+  installBtn: $("#install-btn"),
+  installClose: $("#install-close"),
+};
+
+const state = {
+  index: null,
+  day: null,           // "AAAA-MM-DD"
+  edition: null,       // { date, updated, items }
+  source: "all",
+  query: "",
+  view: "news",        // "news" | "saved"
+  shown: 0,
+  list: [],
+  lastCheck: 0,
+};
+
+/* ---------- almacenamiento local (con tolerancia a fallos) ---------- */
+
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* sin espacio o modo privado */ }
+  },
+};
+
+let saved = store.get("saved", {});        // id -> noticia
+let read = new Set(store.get("read", []));  // ids leídas
+
+function markRead(id) {
+  if (read.has(id)) return;
+  read.add(id);
+  store.set("read", [...read].slice(-1500));
+}
+
+/* ---------- formato de fechas ---------- */
+
+const fmtLong = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: TZ });
+const fmtChip = new Intl.DateTimeFormat("es-ES", { weekday: "short", day: "numeric", timeZone: TZ });
+const fmtTime = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
+const fmtShort = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: TZ });
+const rtf = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
+
+const dayKey = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d); // AAAA-MM-DD
+const fromKey = (k) => new Date(`${k}T12:00:00Z`);
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function relTime(iso) {
+  const date = new Date(iso);
+  const mins = Math.round((Date.now() - date) / 60000);
+  if (mins < 1) return "ahora";
+  if (mins < 60) return rtf.format(-mins, "minute");
+  if (mins < 60 * 12) return rtf.format(-Math.round(mins / 60), "hour");
+  return fmtShort.format(date);
+}
+
+function dayLabel(key) {
+  const today = dayKey(new Date());
+  const yesterday = dayKey(new Date(Date.now() - 864e5));
+  if (key === today) return "Hoy";
+  if (key === yesterday) return "Ayer";
+  return capitalize(fmtChip.format(fromKey(key)).replace(".", ""));
+}
+
+/* ---------- datos ---------- */
+
+async function getJSON(url) {
+  const res = await fetch(url, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+
+const sourceById = (id) => state.index?.sources.find((s) => s.id === id) || { id, name: id };
+
+async function loadIndex() {
+  state.index = await getJSON("data/index.json");
+  state.lastCheck = Date.now();
+}
+
+async function loadDay(key) {
+  state.day = key;
+  state.edition = null;
+  renderDays();
+  renderSkeleton();
+  try {
+    state.edition = await getJSON(`data/${key}.json`);
+  } catch {
+    state.edition = { date: key, items: [] };
+  }
+  if (state.source !== "all" && !state.edition.items.some((i) => i.source === state.source)) {
+    state.source = "all";
+  }
+  render();
+}
+
+/* ---------- pintado ---------- */
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") node.className = v;
+    else if (k === "style") node.style.cssText = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of children.flat()) if (c != null && c !== false) node.append(c);
+  return node;
+}
+
+const icon = (path) => {
+  const wrap = document.createElement("span");
+  wrap.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`;
+  return wrap.firstChild;
+};
+const BOOKMARK = '<path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/>';
+
+function renderDays() {
+  const days = state.index?.days || [];
+  els.days.replaceChildren(
+    ...days.map((d) =>
+      el("button", {
+        class: "chip",
+        "aria-pressed": String(d.date === state.day),
+        onclick: () => { if (d.date !== state.day) { loadDay(d.date); scrollTop(); } },
+      }, dayLabel(d.date)))
+  );
+  const active = els.days.querySelector('[aria-pressed="true"]');
+  active?.scrollIntoView({ block: "nearest", inline: "center" });
+}
+
+function renderSources() {
+  const items = state.edition?.items || [];
+  const counts = new Map();
+  for (const it of items) counts.set(it.source, (counts.get(it.source) || 0) + 1);
+  const sources = (state.index?.sources || []).filter((s) => counts.has(s.id));
+
+  const chip = (id, label, color) =>
+    el("button", {
+      class: "chip",
+      "aria-pressed": String(state.source === id),
+      onclick: () => { state.source = id; render(); scrollTop(); },
+    }, color ? el("span", { class: "dot", style: `--c:${color}` }) : null, label);
+
+  els.sources.replaceChildren(
+    chip("all", "Todos"),
+    ...sources.map((s) => chip(s.id, s.name, s.color))
+  );
+}
+
+function renderSkeleton() {
+  els.feed.replaceChildren(...Array.from({ length: 6 }, () => el("div", { class: "skeleton" })));
+}
+
+function renderEmpty(title, text) {
+  els.feed.replaceChildren(el("div", { class: "empty" }, el("h2", {}, title), el("p", {}, text)));
+}
+
+function storyNode(it, lead = false) {
+  const src = sourceById(it.source);
+  const isSaved = Boolean(saved[it.id]);
+  const hasImg = Boolean(it.image);
+
+  const img = hasImg
+    ? el("img", {
+        class: "thumb", src: it.image, alt: "", loading: lead ? "eager" : "lazy",
+        decoding: "async", referrerpolicy: "no-referrer",
+        onerror: (e) => { e.target.closest(".story")?.classList.add("no-img"); e.target.remove(); },
+      })
+    : null;
+
+  const saveBtn = el("button", {
+    class: "icon-btn small save",
+    "aria-label": isSaved ? "Quitar de guardados" : "Guardar noticia",
+    "aria-pressed": String(isSaved),
+    onclick: (e) => { e.preventDefault(); toggleSave(it, e.currentTarget); },
+  }, icon(BOOKMARK));
+
+  const link = el("a", {
+    href: it.link, target: "_blank", rel: "noopener noreferrer",
+    onclick: () => { markRead(it.id); link.closest(".story")?.classList.add("read"); },
+  },
+    el("div", { class: "meta" },
+      el("span", { class: "source", style: src.color ? `--c:${src.color}` : null }, src.name),
+      el("span", {}, "·"),
+      el("time", { datetime: it.date }, relTime(it.date))),
+    el("h2", {}, it.title),
+    it.summary ? el("p", {}, it.summary) : null,
+    img);
+
+  return el("article", {
+    class: ["story", lead && "lead", !hasImg && "no-img", read.has(it.id) && "read"].filter(Boolean).join(" "),
+  }, link, saveBtn);
+}
+
+function filtered() {
+  let items = state.view === "saved"
+    ? Object.values(saved).sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""))
+    : state.edition?.items || [];
+  if (state.view === "news" && state.source !== "all") items = items.filter((i) => i.source === state.source);
+  if (state.query) {
+    const words = normalize(state.query).split(/\s+/).filter(Boolean);
+    items = items.filter((i) => {
+      const hay = normalize(`${i.title} ${i.summary} ${sourceById(i.source).name}`);
+      return words.every((w) => hay.includes(w));
+    });
+  }
+  return items;
+}
+
+const normalize = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+/** En «Todos» alternamos periódicos para que ninguno acapare la portada. */
+function mixSources(items) {
+  if (state.view !== "news" || state.source !== "all" || state.query) return items;
+  const buckets = new Map();
+  for (const it of items) {
+    if (!buckets.has(it.source)) buckets.set(it.source, []);
+    buckets.get(it.source).push(it);
+  }
+  const queues = [...buckets.values()];
+  const out = [];
+  // Ronda a ronda, dentro de cada ronda ordenadas por hora
+  for (let round = 0; out.length < items.length; round++) {
+    const batch = queues.map((q) => q[round]).filter(Boolean);
+    batch.sort((a, b) => b.date.localeCompare(a.date));
+    out.push(...batch);
+  }
+  // La destacada: la más reciente con foto
+  const leadIdx = out.findIndex((i) => i.image);
+  if (leadIdx > 0) out.unshift(...out.splice(leadIdx, 1));
+  return out;
+}
+
+function render() {
+  renderDays();
+  renderSources();
+  renderDateline();
+  renderFooter();
+
+  els.filters.hidden = state.view === "saved";
+  els.btnSaved.setAttribute("aria-pressed", String(state.view === "saved"));
+  const n = Object.keys(saved).length;
+  els.savedCount.hidden = n === 0;
+  els.savedCount.textContent = n > 99 ? "99+" : String(n);
+
+  state.list = mixSources(filtered());
+  state.shown = 0;
+  els.feed.replaceChildren();
+
+  if (state.view === "saved") {
+    if (!state.list.length) {
+      els.feed.append(el("div", { class: "empty" },
+        el("h2", {}, state.query ? "Sin resultados" : "Nada guardado todavía"),
+        el("p", {}, state.query ? "Prueba con otras palabras." : "Pulsa el marcador de una noticia para leerla más tarde.")));
+      return;
+    }
+  } else if (!state.list.length) {
+    if (state.query) renderEmpty("Sin resultados", `No hay noticias con «${state.query}» en esta edición.`);
+    else renderEmpty("Edición vacía", "No hay noticias para este día.");
+    return;
+  }
+  more();
+}
+
+function more() {
+  const next = state.list.slice(state.shown, state.shown + PAGE);
+  const leadAllowed = state.view === "news" && !state.query && state.shown === 0;
+  els.feed.append(...next.map((it, i) => storyNode(it, leadAllowed && i === 0 && Boolean(it.image))));
+  state.shown += next.length;
+}
+
+function renderDateline() {
+  if (state.view === "saved") {
+    els.dateline.textContent = "Tus noticias guardadas";
+    return;
+  }
+  const key = state.day || dayKey(new Date());
+  const count = state.edition?.items?.length;
+  els.dateline.textContent = capitalize(fmtLong.format(fromKey(key))) + (count ? ` · ${count} noticias` : "");
+}
+
+function renderFooter() {
+  const idx = state.index;
+  if (!idx) { els.footer.replaceChildren(); return; }
+  const updated = new Date(idx.updated);
+  const failed = idx.sources.filter((s) => !s.ok).map((s) => s.name);
+  els.footer.replaceChildren(
+    el("p", {}, `Última actualización: ${dayKey(updated) === dayKey(new Date()) ? "hoy" : capitalize(fmtChip.format(updated))} a las ${fmtTime.format(updated)}`),
+    failed.length ? el("p", {}, `Sin respuesta en la última actualización: ${failed.join(", ")}`) : null,
+    el("p", {}, el("button", { onclick: () => checkForUpdates(true) }, "Comprobar si hay noticias nuevas")),
+  );
+}
+
+function scrollTop() { window.scrollTo({ top: 0, behavior: "smooth" }); }
+
+/* ---------- guardados ---------- */
+
+function toggleSave(it, btn) {
+  if (saved[it.id]) {
+    delete saved[it.id];
+    toast("Quitada de guardadas");
+  } else {
+    saved[it.id] = { ...it, savedAt: new Date().toISOString() };
+    toast("Guardada para leer luego");
+  }
+  store.set("saved", saved);
+  const on = Boolean(saved[it.id]);
+  btn.setAttribute("aria-pressed", String(on));
+  btn.setAttribute("aria-label", on ? "Quitar de guardados" : "Guardar noticia");
+  const n = Object.keys(saved).length;
+  els.savedCount.hidden = n === 0;
+  els.savedCount.textContent = n > 99 ? "99+" : String(n);
+  if (state.view === "saved" && !on) btn.closest(".story")?.remove();
+}
+
+/* ---------- avisos ---------- */
+
+let toastTimer;
+function toast(text, action) {
+  clearTimeout(toastTimer);
+  els.toastText.textContent = text;
+  els.toastAction.hidden = !action;
+  if (action) {
+    els.toastAction.textContent = action.label;
+    els.toastAction.onclick = () => { els.toast.hidden = true; action.run(); };
+  }
+  els.toast.hidden = false;
+  toastTimer = setTimeout(() => { els.toast.hidden = true; }, action ? 8000 : 2200);
+}
+
+/* ---------- actualizaciones ---------- */
+
+async function checkForUpdates(manual = false) {
+  if (!manual && Date.now() - state.lastCheck < 10 * 60 * 1000) return;
+  const before = state.index?.updated;
+  try {
+    await loadIndex();
+  } catch {
+    if (manual) toast("Sin conexión. Mostrando la última edición guardada.");
+    return;
+  }
+  const newest = state.index.days[0]?.date;
+  if (state.index.updated !== before && newest) {
+    toast("Hay noticias nuevas", {
+      label: "Ver",
+      run: () => { state.view = "news"; loadDay(newest).then(scrollTop); },
+    });
+  } else if (manual) {
+    toast("Ya estás al día");
+  }
+  renderFooter();
+}
+
+/* ---------- instalación como app ---------- */
+
+let deferredPrompt = null;
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+
+function setupInstall() {
+  if (standalone || store.get("installDismissed", false)) return;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    els.installBtn.hidden = false;
+    els.install.hidden = false;
+  });
+
+  if (isIOS) {
+    els.installText.textContent = "Para tenerla como app: pulsa Compartir y luego «Añadir a pantalla de inicio».";
+    els.install.hidden = false;
+  }
+
+  els.installBtn.addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    els.install.hidden = true;
+  });
+  els.installClose.addEventListener("click", () => {
+    els.install.hidden = true;
+    store.set("installDismissed", true);
+  });
+  window.addEventListener("appinstalled", () => { els.install.hidden = true; });
+}
+
+/* ---------- eventos ---------- */
+
+els.btnSearch.addEventListener("click", () => {
+  const open = els.search.hidden;
+  els.search.hidden = !open;
+  els.btnSearch.setAttribute("aria-expanded", String(open));
+  if (open) els.searchInput.focus();
+  else if (state.query) { state.query = ""; els.searchInput.value = ""; render(); }
+});
+
+let searchTimer;
+els.searchInput.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.query = els.searchInput.value.trim(); render(); }, 180);
+});
+els.search.addEventListener("submit", (e) => { e.preventDefault(); els.searchInput.blur(); });
+
+els.btnSaved.addEventListener("click", () => {
+  state.view = state.view === "saved" ? "news" : "saved";
+  render();
+  scrollTop();
+});
+
+$("#home-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  state.view = "news";
+  state.source = "all";
+  const newest = state.index?.days[0]?.date;
+  if (newest && newest !== state.day) loadDay(newest); else render();
+  scrollTop();
+});
+
+new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting && state.shown < state.list.length) more();
+}, { rootMargin: "800px" }).observe(els.sentinel);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    checkForUpdates();
+    // refresca los «hace X minutos»
+    document.querySelectorAll(".story time").forEach((t) => { t.textContent = relTime(t.getAttribute("datetime")); });
+  }
+});
+
+/* ---------- arranque ---------- */
+
+async function start() {
+  renderSkeleton();
+  renderDateline();
+  setupInstall();
+  try {
+    await loadIndex();
+  } catch {
+    renderEmpty("Aún no hay ninguna edición",
+      "La primera edición se publicará en cuanto se ejecute la actualización diaria. Vuelve en unos minutos.");
+    return;
+  }
+  const first = state.index.days[0]?.date;
+  if (!first) {
+    renderEmpty("Aún no hay ninguna edición", "Vuelve en unos minutos.");
+    return;
+  }
+  await loadDay(first);
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+
+start();

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mi Periódico</title>
+  <meta name="description" content="Las noticias del día de los principales periódicos, en un solo sitio.">
+  <meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#151412" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Periódico">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-search" aria-label="Buscar" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      </button>
+      <h1 class="title"><a href="./" id="home-link">Mi Periódico</a></h1>
+      <button class="icon-btn" id="btn-saved" aria-label="Noticias guardadas" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/></svg>
+        <span class="badge" id="saved-count" hidden></span>
+      </button>
+    </div>
+    <p class="dateline" id="dateline"></p>
+    <form class="search" id="search" role="search" hidden>
+      <input type="search" id="search-input" placeholder="Buscar en la edición…" autocomplete="off" enterkeyhint="search" aria-label="Buscar en la edición">
+    </form>
+  </header>
+
+  <div class="filters" id="filters">
+    <nav class="chips" id="days" aria-label="Edición"></nav>
+    <nav class="chips" id="sources" aria-label="Periódico"></nav>
+  </div>
+
+  <div class="install" id="install" hidden>
+    <p id="install-text">Instala Mi Periódico en tu móvil para abrirlo como una app.</p>
+    <button class="btn" id="install-btn" hidden>Instalar</button>
+    <button class="icon-btn small" id="install-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+
+  <main id="feed" aria-live="polite"></main>
+  <div id="sentinel"></div>
+
+  <footer class="footer" id="footer"></footer>
+
+  <div class="toast" id="toast" role="status" hidden>
+    <span id="toast-text"></span>
+    <button class="btn" id="toast-action" hidden></button>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

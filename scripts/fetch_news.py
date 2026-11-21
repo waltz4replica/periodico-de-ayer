@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Descarga las noticias de los feeds RSS configurados y genera la edición del día.
+
+Solo usa la biblioteca estándar de Python, así que no hace falta instalar nada.
+
+Genera, dentro de app/data/:
+  - AAAA-MM-DD.json  → la edición de ese día (hora de Madrid)
+  - index.json       → la lista de ediciones disponibles y el estado de cada fuente
+"""
+
+from __future__ import annotations
+
+import hashlib
+import html
+import json
+import os
+import re
+import sys
+import time
+import urllib.request
+import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+ROOT = Path(__file__).resolve().parent.parent
+FEEDS_FILE = Path(os.environ.get("FEEDS_FILE", ROOT / "feeds.json"))
+DATA_DIR = Path(os.environ.get("DATA_DIR", ROOT / "app" / "data"))
+
+USER_AGENT = (
+    "Mozilla/5.0 (compatible; MiPeriodico/1.0; lector RSS personal)"
+)
+
+NS = {
+    "atom": "http://www.w3.org/2005/Atom",
+    "media": "http://search.yahoo.com/mrss/",
+    "content": "http://purl.org/rss/1.0/modules/content/",
+    "dc": "http://purl.org/dc/elements/1.1/",
+}
+
+IMG_RE = re.compile(r"<img[^>]+src=[\"']([^\"']+)[\"']", re.I)
+TAG_RE = re.compile(r"<[^>]+>")
+SPACE_RE = re.compile(r"\s+")
+
+
+# ---------------------------------------------------------------- utilidades
+
+
+def load_config() -> dict:
+    with FEEDS_FILE.open(encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def fetch(url: str, timeout: int = 25, retries: int = 2) -> bytes:
+    last_error: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": USER_AGENT,
+                    "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read()
+        except Exception as exc:  # noqa: BLE001 — cualquier fallo de red se reintenta
+            last_error = exc
+            time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"no se pudo descargar: {last_error}")
+
+
+def clean_text(raw: str | None, limit: int = 300) -> str:
+    if not raw:
+        return ""
+    text = TAG_RE.sub(" ", raw)
+    text = html.unescape(text)
+    text = SPACE_RE.sub(" ", text).strip()
+    if len(text) > limit:
+        cut = text[:limit].rsplit(" ", 1)[0]
+        text = cut.rstrip(",.;:") + "…"
+    return text
+
+
+def safe_url(url: str | None) -> str:
+    if not url:
+        return ""
+    url = html.unescape(url.strip())
+    if url.startswith("//"):
+        url = "https:" + url
+    if url.startswith("http://"):
+        url = "https://" + url[len("http://"):]
+    return url if url.startswith("https://") else ""
+
+
+def parse_date(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    value = value.strip()
+    try:
+        dt = parsedate_to_datetime(value)
+    except (TypeError, ValueError, IndexError):
+        dt = None
+    if dt is None:
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def text_of(el: ET.Element | None) -> str:
+    if el is None:
+        return ""
+    return "".join(el.itertext()).strip()
+
+
+def find_image(item: ET.Element, *html_blobs: str) -> str:
+    # 1) media:content / media:thumbnail (también dentro de media:group)
+    best, best_w = "", -1
+    for tag in ("media:content", "media:group/media:content", "media:thumbnail",
+                "media:group/media:thumbnail"):
+        for el in item.findall(tag, NS):
+            url = el.get("url")
+            medium = (el.get("medium") or "").lower()
+            mime = (el.get("type") or "").lower()
+            if not url or (medium and medium != "image") or (mime and not mime.startswith("image")):
+                continue
+            try:
+                width = int(el.get("width") or 0)
+            except ValueError:
+                width = 0
+            if width > best_w:
+                best, best_w = url, width
+    if best:
+        return safe_url(best)
+    # 2) enclosure de tipo imagen
+    for el in item.findall("enclosure"):
+        if (el.get("type") or "").lower().startswith("image") and el.get("url"):
+            return safe_url(el.get("url"))
+    for el in item.findall("atom:link", NS):
+        if el.get("rel") == "enclosure" and (el.get("type") or "").startswith("image"):
+            return safe_url(el.get("href"))
+    # 3) primera <img> del HTML de la descripción
+    for blob in html_blobs:
+        match = IMG_RE.search(blob or "")
+        if match:
+            return safe_url(match.group(1))
+    return ""
+
+
+# ---------------------------------------------------------------- parseo
+
+
+def parse_feed(data: bytes, feed: dict) -> list[dict]:
+    root = ET.fromstring(data)
+    items: list[dict] = []
+
+    if root.tag.endswith("feed"):  # Atom
+        entries = root.findall("atom:entry", NS)
+        for e in entries:
+            link = ""
+            for l in e.findall("atom:link", NS):
+                if l.get("rel", "alternate") == "alternate":
+                    link = l.get("href", "")
+                    break
+            summary_html = text_of(e.find("atom:summary", NS))
+            content_html = text_of(e.find("atom:content", NS))
+            items.append({
+                "title": clean_text(text_of(e.find("atom:title", NS)), 220),
+                "link": safe_url(link),
+                "summary": clean_text(summary_html or content_html),
+                "image": find_image(e, summary_html, content_html),
+                "date": parse_date(text_of(e.find("atom:published", NS))
+                                   or text_of(e.find("atom:updated", NS))),
+            })
+    else:  # RSS 2.0 / RDF
+        entries = root.findall("./channel/item") or root.findall(".//item") \
+            or root.findall(".//{http://purl.org/rss/1.0/}item")
+        for it in entries:
+            desc_html = text_of(it.find("description"))
+            content_html = text_of(it.find("content:encoded", NS))
+            items.append({
+                "title": clean_text(text_of(it.find("title")), 220),
+                "link": safe_url(text_of(it.find("link")) or text_of(it.find("guid"))),
+                "summary": clean_text(desc_html or content_html),
+                "image": find_image(it, desc_html, content_html),
+                "date": parse_date(text_of(it.find("pubDate")) or text_of(it.find("dc:date", NS))),
+            })
+
+    result = []
+    for it in items[: feed.get("max", 40)]:
+        if not it["title"] or not it["link"]:
+            continue
+        # Si el resumen solo repite el titular, no lo mostramos
+        if it["summary"].lower().startswith(it["title"].lower()[:60]):
+            it["summary"] = it["summary"][len(it["title"]):].lstrip(" .-–—:")
+        it["id"] = hashlib.sha1(it["link"].encode()).hexdigest()[:12]
+        it["source"] = feed["id"]
+        it["section"] = feed.get("section", "")
+        result.append(it)
+    return result
+
+
+# ---------------------------------------------------------------- principal
+
+
+def main() -> int:
+    config = load_config()
+    tz = ZoneInfo(config.get("timezone", "Europe/Madrid"))
+    keep_days = int(config.get("keep_days", 30))
+    max_age = timedelta(hours=int(config.get("max_age_hours", 36)))
+
+    now = datetime.now(timezone.utc)
+    today = now.astimezone(tz).date().isoformat()
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    fresh: list[dict] = []
+    status: dict[str, dict] = {}
+    for feed in config["feeds"]:
+        if feed.get("enabled", True) is False:
+            continue
+        try:
+            items = parse_feed(fetch(feed["url"]), feed)
+            status[feed["id"]] = {"ok": True, "count": len(items)}
+            print(f"✔ {feed['name']}: {len(items)} noticias")
+            fresh.extend(items)
+        except Exception as exc:  # noqa: BLE001 — una fuente rota no debe parar las demás
+            status[feed["id"]] = {"ok": False, "error": str(exc)[:200]}
+            print(f"✘ {feed['name']}: {exc}", file=sys.stderr)
+
+    # Mezclamos con lo que ya tuviera la edición de hoy (si se ejecuta varias veces al día)
+    day_file = DATA_DIR / f"{today}.json"
+    by_id: dict[str, dict] = {}
+    if day_file.exists():
+        for it in json.loads(day_file.read_text(encoding="utf-8")).get("items", []):
+            by_id[it["id"]] = it
+
+    for it in fresh:
+        date = it["date"] or now
+        if now - date > max_age:
+            continue  # noticia demasiado antigua para la edición de hoy
+        it["date"] = min(date, now).isoformat(timespec="seconds").replace("+00:00", "Z")
+        by_id.setdefault(it["id"], it)
+
+    items = sorted(by_id.values(), key=lambda x: x["date"], reverse=True)
+    if items or not day_file.exists():
+        day_file.write_text(
+            json.dumps({"date": today, "updated": now.isoformat(timespec="seconds"),
+                        "items": items}, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+
+    # Limpieza de ediciones antiguas e índice
+    cutoff = (now.astimezone(tz).date() - timedelta(days=keep_days)).isoformat()
+    days = []
+    for f in sorted(DATA_DIR.glob("????-??-??.json"), reverse=True):
+        if f.stem < cutoff:
+            f.unlink()
+            continue
+        count = len(json.loads(f.read_text(encoding="utf-8")).get("items", []))
+        if count:
+            days.append({"date": f.stem, "count": count})
+
+    index = {
+        "title": config.get("title", "Mi Periódico"),
+        "updated": now.isoformat(timespec="seconds"),
+        "sources": [
+            {"id": f["id"], "name": f["name"], "section": f.get("section", ""),
+             "color": f.get("color", ""), **status.get(f["id"], {"ok": False})}
+            for f in config["feeds"] if f.get("enabled", True) is not False
+        ],
+        "days": days,
+    }
+    (DATA_DIR / "index.json").write_text(
+        json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+
+    ok = sum(1 for s in status.values() if s["ok"])
+    print(f"\nEdición {today}: {len(items)} noticias de {ok}/{len(status)} fuentes")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

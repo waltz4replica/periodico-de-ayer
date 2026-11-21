@@ -1,0 +1,30 @@
+{
+  "title": "Mi Periódico",
+  "timezone": "Europe/Madrid",
+  "keep_days": 30,
+  "max_age_hours": 36,
+  "feeds": [
+    { "id": "elpais", "name": "El País", "section": "General", "color": "#1a1a1a",
+      "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada" },
+    { "id": "elmundo", "name": "El Mundo", "section": "General", "color": "#0a4a8f",
+      "url": "https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml" },
+    { "id": "abc", "name": "ABC", "section": "General", "color": "#1f3b73",
+      "url": "https://www.abc.es/rss/2.0/portada/" },
+    { "id": "lavanguardia", "name": "La Vanguardia", "section": "General", "color": "#004a80",
+      "url": "https://www.lavanguardia.com/rss/home.xml" },
+    { "id": "20minutos", "name": "20minutos", "section": "General", "color": "#005aa7",
+      "url": "https://www.20minutos.es/rss/" },
+    { "id": "eldiario", "name": "elDiario.es", "section": "General", "color": "#0f6e8c",
+      "url": "https://www.eldiario.es/rss/" },
+    { "id": "rtve", "name": "RTVE", "section": "General", "color": "#c8102e",
+      "url": "https://api2.rtve.es/rss/temas_noticias.xml" },
+    { "id": "europapress", "name": "Europa Press", "section": "General", "color": "#b5121b",
+      "url": "https://www.europapress.es/rss/rss.aspx" },
+    { "id": "bbcmundo", "name": "BBC Mundo", "section": "Internacional", "color": "#b80000",
+      "url": "https://feeds.bbci.co.uk/mundo/rss.xml" },
+    { "id": "expansion", "name": "Expansión", "section": "Economía", "color": "#7a1e3a",
+      "url": "https://e00-expansion.uecdn.es/rss/portada.xml" },
+    { "id": "marca", "name": "Marca", "section": "Deportes", "color": "#d6001c",
+      "url": "https://e00-marca.uecdn.es/rss/portada.xml" }
+  ]
+}

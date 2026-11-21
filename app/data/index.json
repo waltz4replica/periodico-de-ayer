@@ -1,0 +1,100 @@
+{
+ "title": "Mi Periódico",
+ "updated": "2026-11-21T13:35:38+00:00",
+ "sources": [
+  {
+   "id": "elpais",
+   "name": "El País",
+   "section": "General",
+   "color": "#1a1a1a",
+   "ok": true,
+   "count": 40
+  },
+  {
+   "id": "elmundo",
+   "name": "El Mundo",
+   "section": "General",
+   "color": "#0a4a8f",
+   "ok": true,
+   "count": 22
+  },
+  {
+   "id": "abc",
+   "name": "ABC",
+   "section": "General",
+   "color": "#1f3b73",
+   "ok": true,
+   "count": 25
+  },
+  {
+   "id": "lavanguardia",
+   "name": "La Vanguardia",
+   "section": "General",
+   "color": "#004a80",
+   "ok": true,
+   "count": 40
+  },
+  {
+   "id": "20minutos",
+   "name": "20minutos",
+   "section": "General",
+   "color": "#005aa7",
+   "ok": true,
+   "count": 40
+  },
+  {
+   "id": "eldiario",
+   "name": "elDiario.es",
+   "section": "General",
+   "color": "#0f6e8c",
+   "ok": true,
+   "count": 40
+  },
+  {
+   "id": "rtve",
+   "name": "RTVE",
+   "section": "General",
+   "color": "#c8102e",
+   "ok": true,
+   "count": 40
+  },
+  {
+   "id": "europapress",
+   "name": "Europa Press",
+   "section": "General",
+   "color": "#b5121b",
+   "ok": true,
+   "count": 10
+  },
+  {
+   "id": "bbcmundo",
+   "name": "BBC Mundo",
+   "section": "Internacional",
+   "color": "#b80000",
+   "ok": true,
+   "count": 34
+  },
+  {
+   "id": "expansion",
+   "name": "Expansión",
+   "section": "Economía",
+   "color": "#7a1e3a",
+   "ok": true,
+   "count": 40
+  },
+  {
+   "id": "marca",
+   "name": "Marca",
+   "section": "Deportes",
+   "color": "#d6001c",
+   "ok": true,
+   "count": 40
+  }
+ ],
+ "days": [
+  {
+   "date": "2026-11-21",
+   "count": 257
+  }
+ ]
+}

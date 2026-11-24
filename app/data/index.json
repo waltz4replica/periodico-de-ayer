@@ -1,100 +1,485 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-24T15:05:51+00:00",
+ "updated": "2026-11-24T15:57:51+00:00",
+ "categories": [
+  {
+   "id": "actualidad",
+   "name": "Actualidad"
+  },
+  {
+   "id": "politica",
+   "name": "Política"
+  },
+  {
+   "id": "tecnologia",
+   "name": "Tecnología"
+  },
+  {
+   "id": "ia",
+   "name": "IA",
+   "parent": "tecnologia"
+  },
+  {
+   "id": "ciberseguridad",
+   "name": "Ciberseguridad",
+   "parent": "tecnologia"
+  },
+  {
+   "id": "brechas",
+   "name": "Data breaches",
+   "parent": "tecnologia"
+  },
+  {
+   "id": "leaks",
+   "name": "Leaks",
+   "parent": "tecnologia"
+  },
+  {
+   "id": "videojuegos",
+   "name": "Videojuegos"
+  },
+  {
+   "id": "moviles",
+   "name": "Móviles y gadgets",
+   "parent": "tecnologia"
+  },
+  {
+   "id": "internacional",
+   "name": "Internacional"
+  },
+  {
+   "id": "economia",
+   "name": "Economía"
+  },
+  {
+   "id": "deportes",
+   "name": "Deportes"
+  }
+ ],
  "sources": [
   {
    "id": "elpais",
    "name": "El País",
-   "section": "General",
+   "category": [
+    "actualidad"
+   ],
    "color": "#1a1a1a",
+   "lang": "es",
+   "type": "diario",
+   "lean": "centroizquierda",
+   "lean_basis": "estimacion",
    "ok": true,
    "count": 38
   },
   {
    "id": "elmundo",
    "name": "El Mundo",
-   "section": "General",
+   "category": [
+    "actualidad"
+   ],
    "color": "#0a4a8f",
+   "lang": "es",
+   "type": "diario",
+   "lean": "centroderecha",
+   "lean_basis": "estudio",
    "ok": true,
    "count": 26
   },
   {
    "id": "abc",
    "name": "ABC",
-   "section": "General",
+   "category": [
+    "actualidad"
+   ],
    "color": "#1f3b73",
+   "lang": "es",
+   "type": "diario",
+   "lean": "derecha",
+   "lean_basis": "estudio",
    "ok": true,
    "count": 25
   },
   {
    "id": "lavanguardia",
    "name": "La Vanguardia",
-   "section": "General",
+   "category": [
+    "actualidad"
+   ],
    "color": "#004a80",
+   "lang": "es",
+   "type": "diario",
+   "lean": "centro",
+   "lean_basis": "estimacion",
    "ok": true,
    "count": 40
   },
   {
    "id": "20minutos",
    "name": "20minutos",
-   "section": "General",
+   "category": [
+    "actualidad"
+   ],
    "color": "#005aa7",
+   "lang": "es",
+   "type": "diario",
+   "lean": "centro",
+   "lean_basis": "estimacion",
    "ok": true,
    "count": 39
   },
   {
    "id": "eldiario",
    "name": "elDiario.es",
-   "section": "General",
+   "category": [
+    "actualidad"
+   ],
    "color": "#0f6e8c",
+   "lang": "es",
+   "type": "diario",
+   "lean": "izquierda",
+   "lean_basis": "estimacion",
    "ok": true,
    "count": 39
   },
   {
+   "id": "publico",
+   "name": "Público",
+   "category": [
+    "actualidad"
+   ],
+   "color": "#c4161c",
+   "lang": "es",
+   "type": "diario",
+   "lean": "izquierda",
+   "lean_basis": "estimacion",
+   "ok": true,
+   "count": 26
+  },
+  {
+   "id": "infolibre",
+   "name": "infoLibre",
+   "category": [
+    "actualidad"
+   ],
+   "color": "#d0312d",
+   "lang": "es",
+   "type": "diario",
+   "lean": "izquierda",
+   "lean_basis": "estimacion",
+   "ok": true,
+   "count": 24
+  },
+  {
+   "id": "elconfidencial",
+   "name": "El Confidencial",
+   "category": [
+    "actualidad"
+   ],
+   "color": "#0a3d62",
+   "lang": "es",
+   "type": "diario",
+   "lean": "centroderecha",
+   "lean_basis": "estudio",
+   "ok": true,
+   "count": 13
+  },
+  {
+   "id": "elespanol",
+   "name": "El Español",
+   "category": [
+    "actualidad"
+   ],
+   "color": "#e30613",
+   "lang": "es",
+   "type": "diario",
+   "lean": "centroderecha",
+   "lean_basis": "estimacion",
+   "ok": true,
+   "count": 30
+  },
+  {
+   "id": "larazon",
+   "name": "La Razón",
+   "category": [
+    "actualidad"
+   ],
+   "color": "#003b7a",
+   "lang": "es",
+   "type": "diario",
+   "lean": "derecha",
+   "lean_basis": "estudio",
+   "ok": true,
+   "count": 35
+  },
+  {
    "id": "rtve",
    "name": "RTVE",
-   "section": "General",
+   "category": [
+    "actualidad"
+   ],
    "color": "#c8102e",
+   "lang": "es",
+   "type": "publico",
    "ok": true,
-   "count": 40
+   "count": 39
   },
   {
    "id": "europapress",
    "name": "Europa Press",
-   "section": "General",
+   "category": [
+    "actualidad"
+   ],
    "color": "#b5121b",
+   "lang": "es",
+   "type": "agencia",
+   "lean": "centro",
+   "lean_basis": "estimacion",
    "ok": true,
    "count": 10
   },
   {
    "id": "bbcmundo",
    "name": "BBC Mundo",
-   "section": "Internacional",
+   "category": [
+    "internacional"
+   ],
    "color": "#b80000",
+   "lang": "es",
+   "type": "publico",
    "ok": true,
    "count": 20
   },
   {
    "id": "expansion",
    "name": "Expansión",
-   "section": "Economía",
+   "category": [
+    "economia"
+   ],
    "color": "#7a1e3a",
+   "lang": "es",
+   "type": "diario",
+   "lean": "centroderecha",
+   "lean_basis": "estimacion",
    "ok": true,
-   "count": 40
+   "count": 35
   },
   {
    "id": "marca",
    "name": "Marca",
-   "section": "Deportes",
+   "category": [
+    "deportes"
+   ],
    "color": "#d6001c",
+   "lang": "es",
    "ok": true,
    "count": 40
+  },
+  {
+   "id": "elpaistec",
+   "name": "El País Tecnología",
+   "category": [
+    "tecnologia"
+   ],
+   "color": "#1a1a1a",
+   "lang": "es",
+   "type": "diario",
+   "lean": "centroizquierda",
+   "lean_basis": "estimacion",
+   "ok": true,
+   "count": 2
+  },
+  {
+   "id": "xataka",
+   "name": "Xataka",
+   "category": [
+    "tecnologia"
+   ],
+   "color": "#2b7a3d",
+   "lang": "es",
+   "ok": true,
+   "count": 26
+  },
+  {
+   "id": "genbeta",
+   "name": "Genbeta",
+   "category": [
+    "tecnologia"
+   ],
+   "color": "#e5352b",
+   "lang": "es",
+   "ok": true,
+   "count": 16
+  },
+  {
+   "id": "hipertextual",
+   "name": "Hipertextual",
+   "category": [
+    "tecnologia"
+   ],
+   "color": "#111111",
+   "lang": "es",
+   "ok": true,
+   "count": 15
+  },
+  {
+   "id": "xatakamovil",
+   "name": "Xataka Móvil",
+   "category": [
+    "moviles"
+   ],
+   "color": "#2b7a3d",
+   "lang": "es",
+   "ok": true,
+   "count": 13
+  },
+  {
+   "id": "unaaldia",
+   "name": "Una al día",
+   "category": [
+    "ciberseguridad"
+   ],
+   "color": "#c0392b",
+   "lang": "es",
+   "ok": false,
+   "error": "sin noticias recientes (la más nueva: 2026-10-23T08:01+00:00); sin noticias recientes (la más nueva: sin fecha)"
+  },
+  {
+   "id": "welivesecurity",
+   "name": "WeLiveSecurity",
+   "category": [
+    "ciberseguridad"
+   ],
+   "color": "#0096a1",
+   "lang": "es",
+   "ok": false,
+   "error": "sin noticias recientes (la más nueva: 2026-11-16T18:10+00:00); sin noticias recientes (la más nueva: sin fecha)"
+  },
+  {
+   "id": "bleeping",
+   "name": "BleepingComputer",
+   "category": [
+    "ciberseguridad"
+   ],
+   "color": "#1d5c9a",
+   "lang": "en",
+   "ok": true,
+   "count": 14
+  },
+  {
+   "id": "thehackernews",
+   "name": "The Hacker News",
+   "category": [
+    "ciberseguridad"
+   ],
+   "color": "#e04f2e",
+   "lang": "en",
+   "ok": true,
+   "count": 17
+  },
+  {
+   "id": "krebs",
+   "name": "Krebs on Security",
+   "category": [
+    "ciberseguridad"
+   ],
+   "color": "#444444",
+   "lang": "en",
+   "ok": true,
+   "count": 2
+  },
+  {
+   "id": "therecord",
+   "name": "The Record",
+   "category": [
+    "ciberseguridad"
+   ],
+   "color": "#5b2a86",
+   "lang": "en",
+   "ok": true,
+   "count": 5
+  },
+  {
+   "id": "databreaches",
+   "name": "DataBreaches.net",
+   "category": [
+    "brechas"
+   ],
+   "color": "#8e1b1b",
+   "lang": "en",
+   "ok": true,
+   "count": 10
+  },
+  {
+   "id": "hibp",
+   "name": "Have I Been Pwned",
+   "category": [
+    "brechas"
+   ],
+   "color": "#2a6db0",
+   "lang": "en",
+   "ok": true,
+   "count": 3
+  },
+  {
+   "id": "vandal",
+   "name": "Vandal",
+   "category": [
+    "videojuegos"
+   ],
+   "color": "#c62828",
+   "lang": "es",
+   "ok": true,
+   "count": 28
+  },
+  {
+   "id": "3djuegos",
+   "name": "3DJuegos",
+   "category": [
+    "videojuegos"
+   ],
+   "color": "#e5731a",
+   "lang": "es",
+   "ok": true,
+   "count": 27
+  },
+  {
+   "id": "eurogamer",
+   "name": "Eurogamer",
+   "category": [
+    "videojuegos"
+   ],
+   "color": "#1a4d8f",
+   "lang": "es",
+   "ok": true,
+   "count": 3
+  },
+  {
+   "id": "insidergaming",
+   "name": "Insider Gaming",
+   "category": [
+    "videojuegos"
+   ],
+   "color": "#7b2cbf",
+   "lang": "en",
+   "ok": true,
+   "count": 10
+  },
+  {
+   "id": "vgc",
+   "name": "VGC",
+   "category": [
+    "videojuegos"
+   ],
+   "color": "#d81b60",
+   "lang": "en",
+   "ok": true,
+   "count": 10
   }
  ],
  "days": [
   {
    "date": "2026-11-24",
-   "count": 645
+   "count": 1011
   },
   {
    "date": "2026-11-23",

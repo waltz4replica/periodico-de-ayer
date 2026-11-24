@@ -1,6 +1,6 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-24T14:54:59+00:00",
+ "updated": "2026-11-24T15:04:55+00:00",
  "sources": [
   {
    "id": "elpais",
@@ -16,7 +16,7 @@
    "section": "General",
    "color": "#0a4a8f",
    "ok": true,
-   "count": 25
+   "count": 26
   },
   {
    "id": "abc",
@@ -94,7 +94,7 @@
  "days": [
   {
    "date": "2026-11-24",
-   "count": 617
+   "count": 630
   },
   {
    "date": "2026-11-23",

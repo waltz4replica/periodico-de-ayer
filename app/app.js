@@ -319,7 +319,7 @@ function renderFooter() {
   const failed = idx.sources.filter((s) => !s.ok).map((s) => s.name);
   els.footer.replaceChildren(
     el("p", {}, `Última actualización: ${dayKey(updated) === dayKey(new Date()) ? "hoy" : capitalize(fmtChip.format(updated))} a las ${fmtTime.format(updated)}`),
-    failed.length ? el("p", {}, `Sin respuesta en la última actualización: ${failed.join(", ")}`) : null,
+    failed.length ? el("p", {}, `Sin noticias nuevas de: ${failed.join(", ")}`) : null,
     el("p", {}, el("button", { onclick: () => checkForUpdates(true) }, "Comprobar si hay noticias nuevas")),
   );
 }

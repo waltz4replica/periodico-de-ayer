@@ -35,6 +35,7 @@ Edita [`feeds.json`](feeds.json). Cada periódico es una entrada con su feed RSS
 ```
 
 - Para quitar uno sin borrarlo, añade `"enabled": false`.
+- `fallbacks`: direcciones de reserva que se prueban si la principal falla o no trae noticias recientes.
 - `keep_days`: cuántos días de hemeroteca se guardan (30 por defecto).
 - `max_age_hours`: antigüedad máxima de una noticia para entrar en la edición del día (36 horas).
 

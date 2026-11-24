@@ -74,7 +74,8 @@ def fetch(url: str, timeout: int = 25, retries: int = 2) -> bytes:
 def clean_text(raw: str | None, limit: int = 300) -> str:
     if not raw:
         return ""
-    text = TAG_RE.sub(" ", raw)
+    # Algunos feeds escapan el HTML dos veces (p. ej. «&amp;nbsp;»), así que desescapamos antes y después
+    text = TAG_RE.sub(" ", html.unescape(raw))
     text = html.unescape(text)
     text = SPACE_RE.sub(" ", text).strip()
     if len(text) > limit:
@@ -198,11 +199,39 @@ def parse_feed(data: bytes, feed: dict) -> list[dict]:
         # Si el resumen solo repite el titular, no lo mostramos
         if it["summary"].lower().startswith(it["title"].lower()[:60]):
             it["summary"] = it["summary"][len(it["title"]):].lstrip(" .-–—:")
+        if feed.get("strip_suffix") and it["title"].endswith(feed["strip_suffix"]):
+            it["title"] = it["title"][: -len(feed["strip_suffix"])].strip()
+            it["summary"] = ""  # en Google News el resumen solo repite el titular
         it["id"] = hashlib.sha1(it["link"].encode()).hexdigest()[:12]
         it["source"] = feed["id"]
         it["section"] = feed.get("section", "")
         result.append(it)
     return result
+
+
+def read_feed(feed: dict, now: datetime, max_age: timedelta) -> tuple[dict, list[dict]]:
+    """Prueba la URL principal y, si no trae noticias recientes, las de reserva."""
+    urls = [feed["url"], *feed.get("fallbacks", [])]
+    problems = []
+    for n, url in enumerate(urls):
+        label = feed["name"] + (f" (reserva {n})" if n else "")
+        try:
+            items = parse_feed(fetch(url), feed)
+        except Exception as exc:  # noqa: BLE001 — una fuente rota no debe parar las demás
+            problems.append(str(exc)[:120])
+            print(f"✘ {label}: {exc}", file=sys.stderr)
+            continue
+        dated = [it["date"] for it in items if it["date"]]
+        newest = max(dated) if dated else None
+        recent = [it for it in items if not it["date"] or now - it["date"] <= max_age]
+        if recent:
+            print(f"✔ {label}: {len(recent)} noticias recientes de {len(items)}")
+            return {"ok": True, "count": len(recent)}, recent
+        when = newest.isoformat(timespec="minutes") if newest else "sin fecha"
+        problems.append(f"sin noticias recientes (la más nueva: {when})")
+        print(f"✘ {label}: {len(items)} noticias, ninguna reciente (la más nueva: {when}) — {url}",
+              file=sys.stderr)
+    return {"ok": False, "error": "; ".join(problems)[:200]}, []
 
 
 # ---------------------------------------------------------------- principal
@@ -223,14 +252,9 @@ def main() -> int:
     for feed in config["feeds"]:
         if feed.get("enabled", True) is False:
             continue
-        try:
-            items = parse_feed(fetch(feed["url"]), feed)
-            status[feed["id"]] = {"ok": True, "count": len(items)}
-            print(f"✔ {feed['name']}: {len(items)} noticias")
-            fresh.extend(items)
-        except Exception as exc:  # noqa: BLE001 — una fuente rota no debe parar las demás
-            status[feed["id"]] = {"ok": False, "error": str(exc)[:200]}
-            print(f"✘ {feed['name']}: {exc}", file=sys.stderr)
+        st, recent = read_feed(feed, now, max_age)
+        status[feed["id"]] = st
+        fresh.extend(recent)
 
     # Mezclamos con lo que ya tuviera la edición de hoy (si se ejecuta varias veces al día)
     day_file = DATA_DIR / f"{today}.json"

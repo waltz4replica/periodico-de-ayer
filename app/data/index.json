@@ -1,6 +1,6 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-24T16:00:45+00:00",
+ "updated": "2026-11-24T16:07:15+00:00",
  "categories": [
   {
    "id": "actualidad",
@@ -83,7 +83,7 @@
    "lean": "centroderecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 26
+   "count": 25
   },
   {
    "id": "abc",
@@ -209,7 +209,7 @@
    "lean": "derecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 38
+   "count": 36
   },
   {
    "id": "rtve",
@@ -247,7 +247,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 20
+   "count": 19
   },
   {
    "id": "expansion",
@@ -406,8 +406,8 @@
    ],
    "color": "#8e1b1b",
    "lang": "en",
-   "ok": true,
-   "count": 10
+   "ok": false,
+   "error": "mismatched tag: line 93, column 2; sin noticias recientes (la más nueva: sin fecha)"
   },
   {
    "id": "hibp",
@@ -479,7 +479,7 @@
  "days": [
   {
    "date": "2026-11-24",
-   "count": 1025
+   "count": 1041
   },
   {
    "date": "2026-11-23",

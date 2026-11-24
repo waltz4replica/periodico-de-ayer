@@ -7,6 +7,11 @@ aplicaciones y sin servidor propio.
 - **Se actualiza sola**: GitHub Actions descarga las noticias a las ~7:00, ~14:00 y ~21:00 (hora de Madrid).
 - **Varios periódicos juntos**: El País, El Mundo, ABC, La Vanguardia, 20minutos, elDiario.es, RTVE,
   Europa Press, BBC Mundo, Expansión y Marca. Se pueden filtrar por periódico.
+- **Categorías**: Actualidad, Tecnología, IA, Ciberseguridad, Data breaches, Leaks, Videojuegos,
+  Móviles y gadgets, Internacional, Economía y Deportes. La app recuerda la última que elegiste.
+- **Fuentes de tecnología**: Xataka, Genbeta, Hipertextual, El País Tecnología, Xataka Móvil, Una al día,
+  WeLiveSecurity, BleepingComputer, The Hacker News, Krebs on Security, The Record, DataBreaches.net,
+  Have I Been Pwned, Vandal, 3DJuegos, Eurogamer, Insider Gaming y VGC (las marcadas «EN» están en inglés).
 - **Hemeroteca**: guarda las ediciones de los últimos 30 días (Hoy, Ayer, …).
 - **Buscador**, **noticias guardadas** para leer luego, noticias leídas en gris y **modo oscuro** automático.
 - **Funciona sin conexión** con la última edición descargada.
@@ -40,6 +45,22 @@ Edita [`feeds.json`](feeds.json). Cada periódico es una entrada con su feed RSS
 - `max_age_hours`: antigüedad máxima de una noticia para entrar en la edición del día (36 horas).
 
 Si una fuente falla, las demás siguen funcionando y la app indica al pie cuáles no respondieron.
+
+## Categorías
+
+Las categorías se definen en `feeds.json`, en `categories`. Cada noticia recibe:
+
+1. La categoría de su fuente (`"category"` en cada feed).
+2. Las categorías cuyas palabras clave (`keywords`, expresiones regulares) aparezcan en la noticia.
+   Así, una noticia de El País sobre un ciberataque sale también en «Ciberseguridad».
+   - En las fuentes generalistas solo se mira el **titular**; en las de tecnología y videojuegos
+     (`summary_scope`), también el resumen.
+   - `scope` limita una categoría a noticias de ciertas fuentes: «Leaks» solo se aplica a fuentes de
+     tecnología y videojuegos, para que la filtración de unos audios políticos no acabe ahí.
+   - `parent` hace que una subcategoría cuente también para la principal (IA → Tecnología).
+
+En cada feed, `max_age_hours` permite aceptar noticias más antiguas en fuentes que publican poco
+(Have I Been Pwned, Krebs…), y `site` añade como último recurso una búsqueda de ese sitio en Google News.
 
 ## Cambiar las horas de actualización
 

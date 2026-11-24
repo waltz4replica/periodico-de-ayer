@@ -1,6 +1,6 @@
 /* Service worker: permite abrir la app sin conexión con la última edición descargada. */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = `shell-${VERSION}`;
 const DATA = "data";
 const ASSETS = [

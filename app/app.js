@@ -12,6 +12,7 @@ const $ = (sel) => document.querySelector(sel);
 const els = {
   feed: $("#feed"),
   days: $("#days"),
+  cats: $("#cats"),
   sources: $("#sources"),
   dateline: $("#dateline"),
   footer: $("#footer"),
@@ -36,6 +37,8 @@ const state = {
   day: null,           // "AAAA-MM-DD"
   edition: null,       // { date, updated, items }
   source: "all",
+  cat: "all",         // categoría preferida (se recuerda)
+  activeCat: "all",   // la que se muestra (si la preferida no existe en esa edición, «Todo»)
   query: "",
   view: "news",        // "news" | "saved"
   shown: 0,
@@ -57,6 +60,7 @@ const store = {
 
 let saved = store.get("saved", {});        // id -> noticia
 let read = new Set(store.get("read", []));  // ids leídas
+state.cat = store.get("cat", "all");        // última categoría elegida
 
 function markRead(id) {
   if (read.has(id)) return;
@@ -104,6 +108,15 @@ async function getJSON(url) {
 
 const sourceById = (id) => state.index?.sources.find((s) => s.id === id) || { id, name: id };
 
+/** Categorías de una noticia (las ediciones antiguas no las traen: usamos la de su fuente). */
+function catsOf(it) {
+  if (it.cats) return it.cats;
+  const src = sourceById(it.source);
+  return Array.isArray(src.category) ? src.category : src.category ? [src.category] : [];
+}
+
+const inCat = (it, cat) => cat === "all" || catsOf(it).includes(cat);
+
 async function loadIndex() {
   state.index = await getJSON("data/index.json");
   state.lastCheck = Date.now();
@@ -118,9 +131,6 @@ async function loadDay(key) {
     state.edition = await getJSON(`data/${key}.json`);
   } catch {
     state.edition = { date: key, items: [] };
-  }
-  if (state.source !== "all" && !state.edition.items.some((i) => i.source === state.source)) {
-    state.source = "all";
   }
   render();
 }
@@ -161,8 +171,32 @@ function renderDays() {
   active?.scrollIntoView({ block: "nearest", inline: "center" });
 }
 
-function renderSources() {
+function renderCats() {
   const items = state.edition?.items || [];
+  const counts = new Map();
+  for (const it of items) for (const c of catsOf(it)) counts.set(c, (counts.get(c) || 0) + 1);
+  const cats = (state.index?.categories || []).filter((c) => counts.has(c.id));
+  els.cats.hidden = cats.length < 2;
+
+  const chip = (id, label, sub) =>
+    el("button", {
+      class: "chip" + (sub ? " sub" : ""),
+      "aria-pressed": String(state.activeCat === id),
+      onclick: () => {
+        state.cat = id;
+        state.source = "all";
+        store.set("cat", id);
+        render();
+        scrollTop();
+      },
+    }, label);
+
+  els.cats.replaceChildren(chip("all", "Todo"), ...cats.map((c) => chip(c.id, c.name, c.parent)));
+  els.cats.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "center" });
+}
+
+function renderSources() {
+  const items = (state.edition?.items || []).filter((i) => inCat(i, state.activeCat));
   const counts = new Map();
   for (const it of items) counts.set(it.source, (counts.get(it.source) || 0) + 1);
   const sources = (state.index?.sources || []).filter((s) => counts.has(s.id));
@@ -214,6 +248,7 @@ function storyNode(it, lead = false) {
   },
     el("div", { class: "meta" },
       el("span", { class: "source", style: src.color ? `--c:${src.color}` : null }, src.name),
+      src.lang && src.lang !== "es" ? el("span", { class: "lang", title: "Noticia en inglés" }, src.lang) : null,
       el("span", {}, "·"),
       el("time", { datetime: it.date }, relTime(it.date))),
     el("h2", {}, it.title),
@@ -229,7 +264,10 @@ function filtered() {
   let items = state.view === "saved"
     ? Object.values(saved).sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""))
     : state.edition?.items || [];
-  if (state.view === "news" && state.source !== "all") items = items.filter((i) => i.source === state.source);
+  if (state.view === "news") {
+    items = items.filter((i) => inCat(i, state.activeCat));
+    if (state.source !== "all") items = items.filter((i) => i.source === state.source);
+  }
   if (state.query) {
     const words = normalize(state.query).split(/\s+/).filter(Boolean);
     items = items.filter((i) => {
@@ -265,12 +303,22 @@ function mixSources(items) {
 }
 
 function render() {
+  // Si la categoría o la fuente elegidas no existen en esta edición, volvemos a «Todo»
+  // (la preferencia se conserva: al volver a una edición que la tenga, se recupera)
+  const items = state.edition?.items || [];
+  state.activeCat = state.cat !== "all" && items.some((i) => inCat(i, state.cat)) ? state.cat : "all";
+  if (state.source !== "all" && !items.some((i) => i.source === state.source && inCat(i, state.activeCat))) {
+    state.source = "all";
+  }
+
   renderDays();
+  renderCats();
   renderSources();
   renderDateline();
   renderFooter();
 
   els.filters.hidden = state.view === "saved";
+  els.days.hidden = state.view === "saved";
   els.btnSaved.setAttribute("aria-pressed", String(state.view === "saved"));
   const n = Object.keys(saved).length;
   els.savedCount.hidden = n === 0;
@@ -308,7 +356,8 @@ function renderDateline() {
     return;
   }
   const key = state.day || dayKey(new Date());
-  const count = state.edition?.items?.length;
+  const items = state.edition?.items || [];
+  const count = items.filter((i) => inCat(i, state.activeCat)).length;
   els.dateline.textContent = capitalize(fmtLong.format(fromKey(key))) + (count ? ` · ${count} noticias` : "");
 }
 

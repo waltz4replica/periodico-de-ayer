@@ -5,7 +5,11 @@ Solo usa la biblioteca estándar de Python, así que no hace falta instalar nada
 
 Genera, dentro de app/data/:
   - AAAA-MM-DD.json  → la edición de ese día (hora de Madrid)
-  - index.json       → la lista de ediciones disponibles y el estado de cada fuente
+  - index.json       → la lista de ediciones disponibles, las categorías y el estado de cada fuente
+
+Cada noticia recibe una o varias categorías: la de su fuente y las que encajen con las palabras
+clave de feeds.json (así una noticia de El País sobre un ciberataque aparece también en
+«Ciberseguridad»).
 """
 
 from __future__ import annotations
@@ -17,7 +21,10 @@ import os
 import re
 import sys
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -65,7 +72,12 @@ def fetch(url: str, timeout: int = 25, retries: int = 2) -> bytes:
             )
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.read()
-        except Exception as exc:  # noqa: BLE001 — cualquier fallo de red se reintenta
+        except urllib.error.HTTPError as exc:
+            last_error = exc
+            if 400 <= exc.code < 500:
+                break  # la dirección no existe o no nos deja: reintentar no sirve
+            time.sleep(2 * (attempt + 1))
+        except Exception as exc:  # noqa: BLE001 — cualquier otro fallo de red se reintenta
             last_error = exc
             time.sleep(2 * (attempt + 1))
     raise RuntimeError(f"no se pudo descargar: {last_error}")
@@ -184,8 +196,13 @@ def parse_feed(data: bytes, feed: dict) -> list[dict]:
         for it in entries:
             desc_html = text_of(it.find("description"))
             content_html = text_of(it.find("content:encoded", NS))
+            title = text_of(it.find("title"))
+            publisher = text_of(it.find("source"))  # Google News añade « - Medio» al titular
+            if publisher and title.endswith(f" - {publisher}"):
+                title = title[: -len(publisher) - 3]
+                desc_html = content_html = ""  # su descripción solo repite el titular
             items.append({
-                "title": clean_text(text_of(it.find("title")), 220),
+                "title": clean_text(title, 220),
                 "link": safe_url(text_of(it.find("link")) or text_of(it.find("guid"))),
                 "summary": clean_text(desc_html or content_html),
                 "image": find_image(it, desc_html, content_html),
@@ -204,14 +221,25 @@ def parse_feed(data: bytes, feed: dict) -> list[dict]:
             it["summary"] = ""  # en Google News el resumen solo repite el titular
         it["id"] = hashlib.sha1(it["link"].encode()).hexdigest()[:12]
         it["source"] = feed["id"]
-        it["section"] = feed.get("section", "")
         result.append(it)
     return result
 
 
+def google_news_url(site: str, hours: float) -> str:
+    days = max(1, -(-int(hours) // 24))
+    query = urllib.parse.quote_plus(f"site:{site} when:{days}d")
+    return f"https://news.google.com/rss/search?q={query}&hl=es&gl=ES&ceid=ES:es"
+
+
 def read_feed(feed: dict, now: datetime, max_age: timedelta) -> tuple[dict, list[dict]]:
-    """Prueba la URL principal y, si no trae noticias recientes, las de reserva."""
+    """Prueba la URL principal y, si no trae noticias recientes, las de reserva.
+
+    Si la fuente tiene «site», la última reserva es una búsqueda de ese sitio en Google News.
+    """
+    max_age = timedelta(hours=feed.get("max_age_hours", max_age.total_seconds() / 3600))
     urls = [feed["url"], *feed.get("fallbacks", [])]
+    if feed.get("site"):
+        urls.append(google_news_url(feed["site"], max_age.total_seconds() / 3600))
     problems = []
     for n, url in enumerate(urls):
         label = feed["name"] + (f" (reserva {n})" if n else "")
@@ -234,6 +262,53 @@ def read_feed(feed: dict, now: datetime, max_age: timedelta) -> tuple[dict, list
     return {"ok": False, "error": "; ".join(problems)[:200]}, []
 
 
+# ---------------------------------------------------------------- categorías
+
+
+def as_list(value) -> list[str]:
+    if not value:
+        return []
+    return [value] if isinstance(value, str) else list(value)
+
+
+class Categorizer:
+    """Asigna categorías a cada noticia según su fuente y las palabras clave."""
+
+    def __init__(self, config: dict):
+        self.cats = {c["id"]: c for c in config.get("categories", [])}
+        self.feed_cats = {f["id"]: as_list(f.get("category")) for f in config["feeds"]}
+        self.summary_scope = set(config.get("summary_scope", []))
+        self.rules = []
+        for c in self.cats.values():
+            if c.get("keywords"):
+                pattern = re.compile("|".join(f"(?:{k})" for k in c["keywords"]), re.I)
+                self.rules.append((c["id"], pattern, set(c.get("scope", []))))
+
+    def with_parents(self, ids: list[str]) -> list[str]:
+        out: list[str] = []
+        for cid in ids:
+            while cid and cid not in out:
+                out.append(cid)
+                cid = self.cats.get(cid, {}).get("parent")
+        return out
+
+    def __call__(self, item: dict) -> list[str]:
+        base = self.feed_cats.get(item["source"]) or as_list(item.get("cats"))[:1]
+        found = list(base)
+        own = set(self.with_parents(base))
+        # En las fuentes generalistas solo miramos el titular: el resumen suele mencionar
+        # temas de pasada («…y la IA está alterando…») y mete ruido.
+        text = item["title"]
+        if own & self.summary_scope:
+            text += " " + item.get("summary", "")
+        for cid, pattern, scope in self.rules:
+            if cid in found or (scope and not scope & own):
+                continue
+            if pattern.search(text):
+                found.append(cid)
+        return [c for c in self.with_parents(found) if c in self.cats]
+
+
 # ---------------------------------------------------------------- principal
 
 
@@ -247,14 +322,14 @@ def main() -> int:
     today = now.astimezone(tz).date().isoformat()
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+    feeds = [f for f in config["feeds"] if f.get("enabled", True) is not False]
     fresh: list[dict] = []
     status: dict[str, dict] = {}
-    for feed in config["feeds"]:
-        if feed.get("enabled", True) is False:
-            continue
-        st, recent = read_feed(feed, now, max_age)
-        status[feed["id"]] = st
-        fresh.extend(recent)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = pool.map(lambda f: read_feed(f, now, max_age), feeds)
+        for feed, (st, recent) in zip(feeds, results):
+            status[feed["id"]] = st
+            fresh.extend(recent)
 
     # Mezclamos con lo que ya tuviera la edición de hoy (si se ejecuta varias veces al día)
     day_file = DATA_DIR / f"{today}.json"
@@ -265,10 +340,14 @@ def main() -> int:
 
     for it in fresh:
         date = it["date"] or now
-        if now - date > max_age:
-            continue  # noticia demasiado antigua para la edición de hoy
         it["date"] = min(date, now).isoformat(timespec="seconds").replace("+00:00", "Z")
         by_id.setdefault(it["id"], it)
+
+    # (Re)calculamos las categorías de todas, también de las que ya estaban en la edición
+    categorize = Categorizer(config)
+    for it in by_id.values():
+        it.pop("section", None)
+        it["cats"] = categorize(it)
 
     items = sorted(by_id.values(), key=lambda x: x["date"], reverse=True)
     if items or not day_file.exists():
@@ -292,10 +371,15 @@ def main() -> int:
     index = {
         "title": config.get("title", "Mi Periódico"),
         "updated": now.isoformat(timespec="seconds"),
+        "categories": [
+            {"id": c["id"], "name": c["name"], **({"parent": c["parent"]} if c.get("parent") else {})}
+            for c in config.get("categories", [])
+        ],
         "sources": [
-            {"id": f["id"], "name": f["name"], "section": f.get("section", ""),
-             "color": f.get("color", ""), **status.get(f["id"], {"ok": False})}
-            for f in config["feeds"] if f.get("enabled", True) is not False
+            {"id": f["id"], "name": f["name"], "category": as_list(f.get("category")),
+             "color": f.get("color", ""), "lang": f.get("lang", "es"),
+             **status.get(f["id"], {"ok": False})}
+            for f in feeds
         ],
         "days": days,
     }

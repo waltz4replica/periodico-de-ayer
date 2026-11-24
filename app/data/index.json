@@ -1,6 +1,6 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-24T04:42:49+00:00",
+ "updated": "2026-11-24T14:54:59+00:00",
  "sources": [
   {
    "id": "elpais",
@@ -8,7 +8,7 @@
    "section": "General",
    "color": "#1a1a1a",
    "ok": true,
-   "count": 40
+   "count": 38
   },
   {
    "id": "elmundo",
@@ -40,7 +40,7 @@
    "section": "General",
    "color": "#005aa7",
    "ok": true,
-   "count": 40
+   "count": 39
   },
   {
    "id": "eldiario",
@@ -48,7 +48,7 @@
    "section": "General",
    "color": "#0f6e8c",
    "ok": true,
-   "count": 40
+   "count": 39
   },
   {
    "id": "rtve",
@@ -72,7 +72,7 @@
    "section": "Internacional",
    "color": "#b80000",
    "ok": true,
-   "count": 34
+   "count": 20
   },
   {
    "id": "expansion",
@@ -94,7 +94,7 @@
  "days": [
   {
    "date": "2026-11-24",
-   "count": 283
+   "count": 617
   },
   {
    "date": "2026-11-23",

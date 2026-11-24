@@ -18,27 +18,22 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="masthead">
-    <div class="topbar">
-      <button class="icon-btn" id="btn-search" aria-label="Buscar" aria-expanded="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-      </button>
-      <h1 class="title"><a href="./" id="home-link">Mi Periódico</a></h1>
-      <button class="icon-btn" id="btn-saved" aria-label="Noticias guardadas" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/></svg>
-        <span class="badge" id="saved-count" hidden></span>
-      </button>
-    </div>
-    <p class="dateline" id="dateline"></p>
+  <!-- Barra superior -->
+  <header class="appbar" id="appbar">
+    <button class="icon-btn" id="btn-menu" aria-label="Abrir menú" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <h1 class="appbar-title"><a href="#/" id="appbar-title">Mi Periódico</a></h1>
+    <button class="icon-btn" id="btn-search" aria-label="Buscar" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+    </button>
     <form class="search" id="search" role="search" hidden>
-      <input type="search" id="search-input" placeholder="Buscar en la edición…" autocomplete="off" enterkeyhint="search" aria-label="Buscar en la edición">
+      <input type="search" id="search-input" placeholder="Buscar en todas las secciones…" autocomplete="off" enterkeyhint="search" aria-label="Buscar noticias">
+      <button type="button" class="icon-btn small" id="search-close" aria-label="Cerrar búsqueda">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
     </form>
   </header>
-
-  <div class="filters" id="filters">
-    <nav class="chips" id="days" aria-label="Edición"></nav>
-    <nav class="chips" id="sources" aria-label="Periódico"></nav>
-  </div>
 
   <div class="install" id="install" hidden>
     <p id="install-text">Instala Mi Periódico en tu móvil para abrirlo como una app.</p>
@@ -48,10 +43,38 @@
     </button>
   </div>
 
-  <main id="feed" aria-live="polite"></main>
+  <!-- Contenido de la página actual -->
+  <main id="page" aria-live="polite"></main>
   <div id="sentinel"></div>
 
-  <footer class="footer" id="footer"></footer>
+  <!-- Barra inferior -->
+  <nav class="tabbar" id="tabbar" aria-label="Secciones principales"></nav>
+
+  <!-- Menú lateral -->
+  <dialog class="drawer" id="drawer" aria-label="Menú">
+    <div class="drawer-head">
+      <div>
+        <p class="drawer-title">Mi Periódico</p>
+        <p class="drawer-date" id="drawer-date"></p>
+      </div>
+      <button class="icon-btn small" data-close aria-label="Cerrar menú">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <nav class="drawer-body" id="drawer-body"></nav>
+  </dialog>
+
+  <!-- Hoja inferior reutilizable (filtros, hemeroteca) -->
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <h2 id="sheet-title"></h2>
+      <button class="icon-btn small" data-close aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-foot" id="sheet-foot"></div>
+  </dialog>
 
   <div class="toast" id="toast" role="status" hidden>
     <span id="toast-text"></span>

@@ -1,6 +1,6 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-24T16:07:15+00:00",
+ "updated": "2026-11-24T16:15:07+00:00",
  "categories": [
   {
    "id": "actualidad",
@@ -247,7 +247,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 19
+   "count": 20
   },
   {
    "id": "expansion",
@@ -479,7 +479,7 @@
  "days": [
   {
    "date": "2026-11-24",
-   "count": 1041
+   "count": 1047
   },
   {
    "date": "2026-11-23",

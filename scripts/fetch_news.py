@@ -105,6 +105,14 @@ def fetch(url: str, timeout: int = 25, retries: int = 2) -> bytes:
     raise RuntimeError(f"no se pudo descargar: {last_error}")
 
 
+FILLER_RE = re.compile(r"^(leer( m[aá]s)?|seguir leyendo|sigue leyendo|read more|continue reading)\W*$", re.I)
+
+
+def clean_summary(text: str) -> str:
+    """Descarta resúmenes vacíos o de relleno («Leer», «Seguir leyendo…», restos cortados)."""
+    return "" if len(text) < 25 or FILLER_RE.match(text) else text
+
+
 def clean_text(raw: str | None, limit: int = 300) -> str:
     if not raw:
         return ""
@@ -238,6 +246,7 @@ def parse_feed(data: bytes, feed: dict) -> list[dict]:
         # Si el resumen solo repite el titular, no lo mostramos
         if it["summary"].lower().startswith(it["title"].lower()[:60]):
             it["summary"] = it["summary"][len(it["title"]):].lstrip(" .-–—:")
+        it["summary"] = clean_summary(it["summary"])
         if feed.get("strip_suffix") and it["title"].endswith(feed["strip_suffix"]):
             it["title"] = it["title"][: -len(feed["strip_suffix"])].strip()
             it["summary"] = ""  # en Google News el resumen solo repite el titular
@@ -365,9 +374,15 @@ def main() -> int:
         it["date"] = min(date, now).isoformat(timespec="seconds").replace("+00:00", "Z")
         by_id.setdefault(it["id"], it)
 
+    # Fuera titulares basura (fichas de directorio, sorteos…), también de las ya guardadas
+    junk = [re.compile(p, re.I) for p in config.get("exclude_titles", [])]
+    for key in [k for k, it in by_id.items() if any(p.search(it["title"]) for p in junk)]:
+        del by_id[key]
+
     # (Re)calculamos las categorías de todas, también de las que ya estaban en la edición
     categorize = Categorizer(config)
     for it in by_id.values():
+        it["summary"] = clean_summary(it.get("summary", ""))
         it.pop("section", None)
         it["cats"] = categorize(it)
         kind = kind_of(it)

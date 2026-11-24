@@ -18,30 +18,22 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="masthead">
-    <div class="topbar">
-      <button class="icon-btn" id="btn-search" aria-label="Buscar" aria-expanded="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-      </button>
-      <h1 class="title"><a href="./" id="home-link">Mi Periódico</a></h1>
-      <button class="icon-btn" id="btn-saved" aria-label="Noticias guardadas" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/></svg>
-        <span class="badge" id="saved-count" hidden></span>
-      </button>
-    </div>
-    <p class="dateline" id="dateline"></p>
+  <!-- Barra superior -->
+  <header class="appbar" id="appbar">
+    <button class="icon-btn" id="btn-menu" aria-label="Abrir menú" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <h1 class="appbar-title"><a href="#/" id="appbar-title">Mi Periódico</a></h1>
+    <button class="icon-btn" id="btn-search" aria-label="Buscar" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+    </button>
     <form class="search" id="search" role="search" hidden>
-      <input type="search" id="search-input" placeholder="Buscar en la edición…" autocomplete="off" enterkeyhint="search" aria-label="Buscar en la edición">
+      <input type="search" id="search-input" placeholder="Buscar en todas las secciones…" autocomplete="off" enterkeyhint="search" aria-label="Buscar noticias">
+      <button type="button" class="icon-btn small" id="search-close" aria-label="Cerrar búsqueda">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
     </form>
   </header>
-
-  <nav class="chips days" id="days" aria-label="Edición"></nav>
-
-  <div class="filters" id="filters">
-    <nav class="chips cats" id="cats" aria-label="Categoría"></nav>
-    <nav class="chips leans" id="leans" aria-label="Orientación del medio" hidden></nav>
-    <nav class="chips" id="sources" aria-label="Fuente"></nav>
-  </div>
 
   <div class="install" id="install" hidden>
     <p id="install-text">Instala Mi Periódico en tu móvil para abrirlo como una app.</p>
@@ -51,54 +43,43 @@
     </button>
   </div>
 
-  <main id="feed" aria-live="polite"></main>
+  <!-- Contenido de la página actual -->
+  <main id="page" aria-live="polite"></main>
   <div id="sentinel"></div>
 
-  <footer class="footer" id="footer"></footer>
+  <!-- Barra inferior -->
+  <nav class="tabbar" id="tabbar" aria-label="Secciones principales"></nav>
+
+  <!-- Menú lateral -->
+  <dialog class="drawer" id="drawer" aria-label="Menú">
+    <div class="drawer-head">
+      <div>
+        <p class="drawer-title">Mi Periódico</p>
+        <p class="drawer-date" id="drawer-date"></p>
+      </div>
+      <button class="icon-btn small" data-close aria-label="Cerrar menú">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <nav class="drawer-body" id="drawer-body"></nav>
+  </dialog>
+
+  <!-- Hoja inferior reutilizable (filtros, hemeroteca) -->
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <h2 id="sheet-title"></h2>
+      <button class="icon-btn small" data-close aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-foot" id="sheet-foot"></div>
+  </dialog>
 
   <div class="toast" id="toast" role="status" hidden>
     <span id="toast-text"></span>
     <button class="btn" id="toast-action" hidden></button>
   </div>
-
-  <dialog class="sheet" id="about" aria-labelledby="about-title">
-    <form method="dialog" class="sheet-head">
-      <h2 id="about-title">Cómo leer las etiquetas</h2>
-      <button class="icon-btn small" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-      </button>
-    </form>
-    <div class="sheet-body">
-      <h3>Orientación del medio</h3>
-      <p>La barrita junto al nombre del medio indica su orientación política aproximada, de izquierda a
-        derecha. Es una orientación <strong>del medio en conjunto</strong>, no de cada noticia: un diario de
-        cualquier línea publica información rigurosa, y la línea editorial se nota sobre todo en qué temas
-        destaca, cómo titula y en sus artículos de opinión.</p>
-      <p>Se basa en estudios sobre la ideología de la audiencia de cada medio
-        (<a href="https://www.esade.edu/ecpol/es/publicaciones/polarizacion-medios-espana/" target="_blank" rel="noopener">EsadeEcPol, con datos del Digital News Report</a>
-        y <a href="https://www.pewresearch.org/global/fact-sheet/news-media-and-political-attitudes-in-spain/" target="_blank" rel="noopener">Pew Research</a>).
-        Donde no hay datos de estudio se usa la línea editorial conocida, y se marca como <em>estimación</em>.</p>
-      <ul class="lean-list" id="lean-list"></ul>
-
-      <h3>Tipo de contenido</h3>
-      <dl class="kinds">
-        <dt><span class="tag opinion">Opinión</span></dt>
-        <dd>Columnas, editoriales y tribunas: expresan el punto de vista del autor o del periódico, no son información.</dd>
-        <dt><span class="tag patrocinado">Patrocinado</span></dt>
-        <dd>Contenido pagado por una empresa o institución, publicado con aspecto de noticia.</dd>
-        <dt><span class="tag propaganda">Propaganda</span></dt>
-        <dd>Medios controlados por un Estado sin prensa libre o por un partido político. Ninguna de tus
-          fuentes actuales lo es; si añades una, márcala con <code>"type": "propaganda"</code> en feeds.json.</dd>
-        <dt><span class="tag publico">Medio público</span></dt>
-        <dd>Radiotelevisiones públicas (RTVE, BBC). Su dirección depende de las instituciones, y la percepción
-          de su línea cambia según quién gobierne, así que no se les asigna una posición.</dd>
-      </dl>
-
-      <h3>Cómo lo cuentan otros</h3>
-      <p>En las noticias políticas, la app busca la misma noticia en otros medios para que puedas comparar
-        enfoques. Se emparejan por las palabras del titular, así que puede fallar alguna vez.</p>
-    </div>
-  </dialog>
 
   <script src="app.js" defer></script>
 </body>

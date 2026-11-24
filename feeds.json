@@ -4,6 +4,8 @@
   "keep_days": 30,
   "max_age_hours": 36,
   "summary_scope": ["tecnologia", "videojuegos"],
+  "exclude_titles": ["Informaci[oó]n del ejecutivo o administrador", "^Ver empresas\\b", "\\bP[aá]gina \\d+\\.?$",
+                     "^Opiniones y rese[nñ]as sobre", "^(Hor[oó]scopo|Sorteo|Resultado (de la|del) (Primitiva|Bonoloto|Euromillones|ONCE))\\b"],
 
   "categories": [
     { "id": "actualidad", "name": "Actualidad" },

@@ -13,7 +13,10 @@ aplicaciones y sin servidor propio.
 - **Fuentes de tecnología**: Xataka, Genbeta, Hipertextual, El País Tecnología, Xataka Móvil, Una al día,
   WeLiveSecurity, BleepingComputer, The Hacker News, Krebs on Security, The Record, DataBreaches.net,
   Have I Been Pwned, Vandal, 3DJuegos, Eurogamer, Insider Gaming y VGC (las marcadas «EN» están en inglés).
-- **Hemeroteca**: guarda las ediciones de los últimos 30 días (Hoy, Ayer, …).
+- **Organizada como una app**: barra inferior (Portada, Política, Tecnología, Juegos, Guardadas), menú
+  lateral con todas las secciones, portada por bloques y filtros en una hoja aparte.
+- **Hemeroteca**: guarda las ediciones de los últimos 30 días.
+- **Ajustes**: tamaño de letra y ocultar noticias en inglés o contenido patrocinado.
 - **Buscador**, **noticias guardadas** para leer luego, noticias leídas en gris y **modo oscuro** automático.
 - **Funciona sin conexión** con la última edición descargada.
 
@@ -44,6 +47,7 @@ Edita [`feeds.json`](feeds.json). Cada periódico es una entrada con su feed RSS
 - `fallbacks`: direcciones de reserva que se prueban si la principal falla o no trae noticias recientes.
 - `keep_days`: cuántos días de hemeroteca se guardan (30 por defecto).
 - `max_age_hours`: antigüedad máxima de una noticia para entrar en la edición del día (36 horas).
+- `exclude_titles`: expresiones para descartar titulares basura (fichas de directorio, sorteos…).
 
 Si una fuente falla, las demás siguen funcionando y la app indica al pie cuáles no respondieron.
 

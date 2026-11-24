@@ -1,13 +1,13 @@
 /* Service worker: permite abrir la app sin conexión con la última edición descargada. */
 
-const VERSION = "v4";
+const VERSION = "v5";
 const SHELL = `shell-${VERSION}`;
 const DATA = "data";
 const ASSETS = [
   "./",
   "index.html",
-  "styles.css",
-  "app.js",
+  "styles.css?v=5",
+  "app.js?v=5",
   "manifest.webmanifest",
   "icons/icon.svg",
   "icons/icon-192.png",
@@ -33,7 +33,7 @@ self.addEventListener("fetch", (event) => {
 
   // Noticias y código: primero la red, y si no hay conexión, la copia guardada.
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache: "no-cache" }) // sin caché HTTP: nunca mezclar versiones
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();

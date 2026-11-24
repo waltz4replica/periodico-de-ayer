@@ -16,7 +16,11 @@ aplicaciones y sin servidor propio.
 - **Organizada como una app**: barra inferior (Portada, Política, Tecnología, Juegos, Guardadas), menú
   lateral con todas las secciones, portada por bloques y filtros en una hoja aparte.
 - **Hemeroteca**: guarda las ediciones de los últimos 30 días.
-- **Ajustes**: tamaño de letra y ocultar noticias en inglés o contenido patrocinado.
+- **Sin publicidad**: oculta contenido patrocinado, ofertas, chollos, guías de compra y loterías.
+- **«No me interesa»**: el ojo tachado de cada noticia la oculta junto con las que cuenten lo mismo, o
+  silencia un tema (una palabra del titular) o un medio. Todo lo oculto queda en **Ocultas**, en el menú,
+  desde donde se puede recuperar. Se guarda solo en tu móvil.
+- **Ajustes**: tamaño de letra, noticias en inglés y filtro de publicidad.
 - **Buscador**, **noticias guardadas** para leer luego, noticias leídas en gris y **modo oscuro** automático.
 - **Funciona sin conexión** con la última edición descargada.
 

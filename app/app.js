@@ -13,6 +13,9 @@ const els = {
   feed: $("#feed"),
   days: $("#days"),
   cats: $("#cats"),
+  leans: $("#leans"),
+  about: $("#about"),
+  leanList: $("#lean-list"),
   sources: $("#sources"),
   dateline: $("#dateline"),
   footer: $("#footer"),
@@ -39,6 +42,7 @@ const state = {
   source: "all",
   cat: "all",         // categoría preferida (se recuerda)
   activeCat: "all",   // la que se muestra (si la preferida no existe en esa edición, «Todo»)
+  lean: "all",        // filtro por orientación del medio
   query: "",
   view: "news",        // "news" | "saved"
   shown: 0,
@@ -116,6 +120,84 @@ function catsOf(it) {
 }
 
 const inCat = (it, cat) => cat === "all" || catsOf(it).includes(cat);
+
+/* ---------- orientación de los medios ---------- */
+
+const LEANS = [
+  { id: "izquierda", name: "Izquierda" },
+  { id: "centroizquierda", name: "Centroizquierda" },
+  { id: "centro", name: "Centro" },
+  { id: "centroderecha", name: "Centroderecha" },
+  { id: "derecha", name: "Derecha" },
+];
+const leanPos = (id) => LEANS.findIndex((l) => l.id === id);
+const leanName = (id) => LEANS.find((l) => l.id === id)?.name || "";
+const LEAN_CATS = new Set(["politica", "actualidad"]);
+const TYPE_TAGS = { propaganda: "Propaganda", publico: "Medio público" };
+const KIND_TAGS = { opinion: "Opinión", patrocinado: "Patrocinado" };
+
+function leanBar(src) {
+  if (!src.lean) return null;
+  const pos = leanPos(src.lean);
+  const label = `${src.name}: ${leanName(src.lean).toLowerCase()}` +
+    (src.lean_basis === "estimacion" ? " (estimación)" : " (según estudios de audiencia)");
+  const bar = el("span", { class: "lean-bar", role: "img", "aria-label": label, title: label },
+    ...LEANS.map((_, i) => el("i", { class: i === pos ? "on" : null })));
+  return bar;
+}
+
+function openAbout() {
+  const sources = (state.index?.sources || []).filter((s) => s.lean || TYPE_TAGS[s.type]);
+  sources.sort((a, b) => (leanPos(a.lean) - leanPos(b.lean)) || a.name.localeCompare(b.name));
+  els.leanList.replaceChildren(...sources.map((s) =>
+    el("li", {},
+      el("span", { class: "lean-name" }, s.name,
+        el("small", { class: "lean-label" },
+          s.lean ? leanName(s.lean) + (s.lean_basis === "estimacion" ? " · estimación" : " · según estudios") : "")),
+      s.lean ? leanBar(s) : el("span", { class: "tag " + s.type }, TYPE_TAGS[s.type]))));
+  els.about.showModal?.();
+}
+
+/* Agrupa titulares parecidos de distintos medios («Cómo lo cuentan otros») */
+const STOP = new Set(("para como tras sobre entre desde hasta este esta estos estas pero porque cuando donde " +
+  "todo todos toda todas años dice según hace puede será sido tiene tienen nuevo nueva ante contra sólo solo " +
+  "más menos muy otra otro otros otras cada ahora hacer hecho ser están está fue han hay sus del las los una " +
+  "unos unas que con por sin les nos así aunque mientras tras cómo qué quién quien cuál").split(" "));
+
+function tokens(title) {
+  return new Set(normalize(title).split(/[^a-z0-9ñ]+/).filter((w) => w.length > 3 && !STOP.has(w)));
+}
+
+let versionsCache = { edition: null, map: new Map() };
+function versionsOf(it) {
+  if (versionsCache.edition !== state.edition) {
+    const pool = (state.edition?.items || [])
+      .filter((i) => catsOf(i).includes("politica") && sourceById(i.source).lean && i.kind !== "patrocinado")
+      .map((i) => ({ it: i, tok: tokens(i.title) }));
+    const map = new Map();
+    for (const a of pool) {
+      const matches = [];
+      for (const b of pool) {
+        if (a === b || a.it.source === b.it.source) continue;
+        let shared = 0;
+        for (const w of a.tok) if (b.tok.has(w)) shared++;
+        const score = shared / Math.min(a.tok.size, b.tok.size || 1);
+        if (shared >= 3 && score >= 0.45) matches.push({ it: b.it, score });
+      }
+      // Una versión por medio, priorizando orientaciones distintas a la del original
+      matches.sort((x, y) => y.score - x.score);
+      const bySource = new Map();
+      for (const m of matches) if (!bySource.has(m.it.source)) bySource.set(m.it.source, m.it);
+      const own = leanPos(sourceById(a.it.source).lean);
+      const list = [...bySource.values()]
+        .sort((x, y) => Math.abs(leanPos(sourceById(y.source).lean) - own) - Math.abs(leanPos(sourceById(x.source).lean) - own))
+        .slice(0, 4);
+      if (list.length) map.set(a.it.id, list);
+    }
+    versionsCache = { edition: state.edition, map };
+  }
+  return versionsCache.map.get(it.id) || [];
+}
 
 async function loadIndex() {
   state.index = await getJSON("data/index.json");
@@ -195,8 +277,30 @@ function renderCats() {
   els.cats.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "center" });
 }
 
-function renderSources() {
+const leanFilterOn = () => state.lean !== "all" && LEAN_CATS.has(state.activeCat);
+
+function renderLeans() {
+  const show = state.view === "news" && LEAN_CATS.has(state.activeCat);
+  els.leans.hidden = !show;
+  if (!show) return;
   const items = (state.edition?.items || []).filter((i) => inCat(i, state.activeCat));
+  const present = new Set(items.map((i) => sourceById(i.source).lean).filter(Boolean));
+  const chip = (id, label) => el("button", {
+    class: "chip",
+    "aria-pressed": String(state.lean === id),
+    onclick: () => { state.lean = id; state.source = "all"; render(); scrollTop(); },
+  }, id !== "all" ? el("span", { class: "lean-bar mini" },
+      ...LEANS.map((_, i) => el("i", { class: i === leanPos(id) ? "on" : null }))) : null, label);
+  els.leans.replaceChildren(
+    chip("all", "Todas las líneas"),
+    ...LEANS.filter((l) => present.has(l.id)).map((l) => chip(l.id, l.name)),
+    el("button", { class: "chip info", onclick: openAbout, "aria-label": "Qué significan las etiquetas" }, "ⓘ ¿Qué es esto?"),
+  );
+}
+
+function renderSources() {
+  const items = (state.edition?.items || []).filter((i) => inCat(i, state.activeCat) &&
+    (!leanFilterOn() || sourceById(i.source).lean === state.lean));
   const counts = new Map();
   for (const it of items) counts.set(it.source, (counts.get(it.source) || 0) + 1);
   const sources = (state.index?.sources || []).filter((s) => counts.has(s.id));
@@ -226,6 +330,10 @@ function storyNode(it, lead = false) {
   const src = sourceById(it.source);
   const isSaved = Boolean(saved[it.id]);
   const hasImg = Boolean(it.image);
+  const tags = [
+    TYPE_TAGS[src.type] && src.type === "propaganda" ? el("span", { class: "tag propaganda" }, TYPE_TAGS.propaganda) : null,
+    KIND_TAGS[it.kind] ? el("span", { class: "tag " + it.kind }, KIND_TAGS[it.kind]) : null,
+  ].filter(Boolean);
 
   const img = hasImg
     ? el("img", {
@@ -249,15 +357,30 @@ function storyNode(it, lead = false) {
     el("div", { class: "meta" },
       el("span", { class: "source", style: src.color ? `--c:${src.color}` : null }, src.name),
       src.lang && src.lang !== "es" ? el("span", { class: "lang", title: "Noticia en inglés" }, src.lang) : null,
+      leanBar(src),
       el("span", {}, "·"),
       el("time", { datetime: it.date }, relTime(it.date))),
+    tags.length ? el("div", { class: "tags" }, tags) : null,
     el("h2", {}, it.title),
     it.summary ? el("p", {}, it.summary) : null,
     img);
 
+  const versions = state.view === "news" ? versionsOf(it) : [];
+  const others = versions.length
+    ? el("div", { class: "versions" },
+        el("span", { class: "versions-label" }, "Cómo lo cuentan otros:"),
+        ...versions.map((v) => {
+          const vs = sourceById(v.source);
+          return el("a", {
+            href: v.link, target: "_blank", rel: "noopener noreferrer", title: v.title,
+            onclick: () => markRead(v.id),
+          }, leanBar(vs), vs.name);
+        }))
+    : null;
+
   return el("article", {
     class: ["story", lead && "lead", !hasImg && "no-img", read.has(it.id) && "read"].filter(Boolean).join(" "),
-  }, link, saveBtn);
+  }, link, others, saveBtn);
 }
 
 function filtered() {
@@ -267,6 +390,7 @@ function filtered() {
   if (state.view === "news") {
     items = items.filter((i) => inCat(i, state.activeCat));
     if (state.source !== "all") items = items.filter((i) => i.source === state.source);
+    if (leanFilterOn()) items = items.filter((i) => sourceById(i.source).lean === state.lean);
   }
   if (state.query) {
     const words = normalize(state.query).split(/\s+/).filter(Boolean);
@@ -311,8 +435,11 @@ function render() {
     state.source = "all";
   }
 
+  if (!LEAN_CATS.has(state.activeCat)) state.lean = "all";
+
   renderDays();
   renderCats();
+  renderLeans();
   renderSources();
   renderDateline();
   renderFooter();
@@ -357,7 +484,8 @@ function renderDateline() {
   }
   const key = state.day || dayKey(new Date());
   const items = state.edition?.items || [];
-  const count = items.filter((i) => inCat(i, state.activeCat)).length;
+  const count = items.filter((i) => inCat(i, state.activeCat) &&
+    (!leanFilterOn() || sourceById(i.source).lean === state.lean)).length;
   els.dateline.textContent = capitalize(fmtLong.format(fromKey(key))) + (count ? ` · ${count} noticias` : "");
 }
 
@@ -369,6 +497,7 @@ function renderFooter() {
   els.footer.replaceChildren(
     el("p", {}, `Última actualización: ${dayKey(updated) === dayKey(new Date()) ? "hoy" : capitalize(fmtChip.format(updated))} a las ${fmtTime.format(updated)}`),
     failed.length ? el("p", {}, `Sin noticias nuevas de: ${failed.join(", ")}`) : null,
+    el("p", {}, el("button", { onclick: openAbout }, "Cómo leer la orientación de los medios y las etiquetas")),
     el("p", {}, el("button", { onclick: () => checkForUpdates(true) }, "Comprobar si hay noticias nuevas")),
   );
 }

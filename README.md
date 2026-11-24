@@ -6,8 +6,9 @@ aplicaciones y sin servidor propio.
 
 - **Se actualiza sola**: GitHub Actions descarga las noticias a las ~7:00, ~14:00 y ~21:00 (hora de Madrid).
 - **Varios periódicos juntos**: El País, El Mundo, ABC, La Vanguardia, 20minutos, elDiario.es, RTVE,
-  Europa Press, BBC Mundo, Expansión y Marca. Se pueden filtrar por periódico.
-- **Categorías**: Actualidad, Tecnología, IA, Ciberseguridad, Data breaches, Leaks, Videojuegos,
+  Europa Press, BBC Mundo, Expansión, Marca, Público, infoLibre, El Confidencial, El Español y La Razón.
+  Se pueden filtrar por periódico y por orientación.
+- **Categorías**: Actualidad, Política, Tecnología, IA, Ciberseguridad, Data breaches, Leaks, Videojuegos,
   Móviles y gadgets, Internacional, Economía y Deportes. La app recuerda la última que elegiste.
 - **Fuentes de tecnología**: Xataka, Genbeta, Hipertextual, El País Tecnología, Xataka Móvil, Una al día,
   WeLiveSecurity, BleepingComputer, The Hacker News, Krebs on Security, The Record, DataBreaches.net,
@@ -61,6 +62,21 @@ Las categorías se definen en `feeds.json`, en `categories`. Cada noticia recibe
 
 En cada feed, `max_age_hours` permite aceptar noticias más antiguas en fuentes que publican poco
 (Have I Been Pwned, Krebs…), y `site` añade como último recurso una búsqueda de ese sitio en Google News.
+
+## Orientación de los medios, opinión y propaganda
+
+- Cada medio generalista tiene en `feeds.json` una orientación aproximada (`lean`: izquierda,
+  centroizquierda, centro, centroderecha o derecha) y su base (`lean_basis`): `estudio` si la respaldan
+  estudios de audiencia (EsadeEcPol con datos del Digital News Report; Pew Research) o `estimacion` si se
+  basa en la línea editorial conocida. En la app se ve como una barrita junto al nombre del medio.
+- `type`: `diario`, `agencia`, `publico` (radiotelevisiones públicas, sin posición asignada),
+  `propaganda` (medios controlados por un Estado sin prensa libre o por un partido) o `partidista`.
+- Cada noticia se marca como **Opinión** o **Patrocinado** según su dirección web (`/opinion/`,
+  `/tribuna/`, `/branded/`…), para no confundir comentario o publicidad con información.
+- En **Política** y **Actualidad** se puede filtrar por orientación, y en las noticias políticas aparece
+  «Cómo lo cuentan otros» con la misma noticia en otros medios, priorizando los de otra línea.
+
+Es una orientación del medio en conjunto, no un juicio sobre cada noticia.
 
 ## Cambiar las horas de actualización
 

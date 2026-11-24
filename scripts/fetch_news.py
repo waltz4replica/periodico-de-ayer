@@ -46,6 +46,28 @@ NS = {
     "dc": "http://purl.org/dc/elements/1.1/",
 }
 
+# Tipo de pieza según la dirección o el titular: opinión y contenido patrocinado se marcan
+# para no confundirlos con información.
+KIND_RULES = [
+    ("patrocinado", re.compile(
+        r"/(branded|brand-?content|patrocinad[oa]s?|contenido-patrocinado|publirreportaje|"
+        r"escaparate|promociones|sponsored|partner-content)(/|-|$)|^(patrocinado|publirreportaje|"
+        r"contenido patrocinado|sponsored)\b", re.I)),
+    ("opinion", re.compile(
+        r"/(opinion|opiniones|tribuna|tribunas|editorial|editoriales|columnas?|firmas|"
+        r"columnistas|blogs?|cartas-al-director|el-mirador|analisis-opinion)(/|-|$)|"
+        r"^(opini[oó]n|editorial|tribuna|columna|an[aá]lisis)\s*[|:]", re.I)),
+]
+
+
+def kind_of(item: dict) -> str:
+    path = item["link"].split("://", 1)[-1].split("/", 1)[-1].lower()
+    for kind, pattern in KIND_RULES:
+        if pattern.search("/" + path) or pattern.search(item["title"]):
+            return kind
+    return ""
+
+
 IMG_RE = re.compile(r"<img[^>]+src=[\"']([^\"']+)[\"']", re.I)
 TAG_RE = re.compile(r"<[^>]+>")
 SPACE_RE = re.compile(r"\s+")
@@ -348,6 +370,11 @@ def main() -> int:
     for it in by_id.values():
         it.pop("section", None)
         it["cats"] = categorize(it)
+        kind = kind_of(it)
+        if kind:
+            it["kind"] = kind
+        else:
+            it.pop("kind", None)
 
     items = sorted(by_id.values(), key=lambda x: x["date"], reverse=True)
     if items or not day_file.exists():
@@ -378,6 +405,7 @@ def main() -> int:
         "sources": [
             {"id": f["id"], "name": f["name"], "category": as_list(f.get("category")),
              "color": f.get("color", ""), "lang": f.get("lang", "es"),
+             **{k: f[k] for k in ("type", "lean", "lean_basis") if f.get(k)},
              **status.get(f["id"], {"ok": False})}
             for f in feeds
         ],

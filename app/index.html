@@ -39,6 +39,7 @@
 
   <div class="filters" id="filters">
     <nav class="chips cats" id="cats" aria-label="Categoría"></nav>
+    <nav class="chips leans" id="leans" aria-label="Orientación del medio" hidden></nav>
     <nav class="chips" id="sources" aria-label="Fuente"></nav>
   </div>
 
@@ -59,6 +60,45 @@
     <span id="toast-text"></span>
     <button class="btn" id="toast-action" hidden></button>
   </div>
+
+  <dialog class="sheet" id="about" aria-labelledby="about-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="about-title">Cómo leer las etiquetas</h2>
+      <button class="icon-btn small" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </form>
+    <div class="sheet-body">
+      <h3>Orientación del medio</h3>
+      <p>La barrita junto al nombre del medio indica su orientación política aproximada, de izquierda a
+        derecha. Es una orientación <strong>del medio en conjunto</strong>, no de cada noticia: un diario de
+        cualquier línea publica información rigurosa, y la línea editorial se nota sobre todo en qué temas
+        destaca, cómo titula y en sus artículos de opinión.</p>
+      <p>Se basa en estudios sobre la ideología de la audiencia de cada medio
+        (<a href="https://www.esade.edu/ecpol/es/publicaciones/polarizacion-medios-espana/" target="_blank" rel="noopener">EsadeEcPol, con datos del Digital News Report</a>
+        y <a href="https://www.pewresearch.org/global/fact-sheet/news-media-and-political-attitudes-in-spain/" target="_blank" rel="noopener">Pew Research</a>).
+        Donde no hay datos de estudio se usa la línea editorial conocida, y se marca como <em>estimación</em>.</p>
+      <ul class="lean-list" id="lean-list"></ul>
+
+      <h3>Tipo de contenido</h3>
+      <dl class="kinds">
+        <dt><span class="tag opinion">Opinión</span></dt>
+        <dd>Columnas, editoriales y tribunas: expresan el punto de vista del autor o del periódico, no son información.</dd>
+        <dt><span class="tag patrocinado">Patrocinado</span></dt>
+        <dd>Contenido pagado por una empresa o institución, publicado con aspecto de noticia.</dd>
+        <dt><span class="tag propaganda">Propaganda</span></dt>
+        <dd>Medios controlados por un Estado sin prensa libre o por un partido político. Ninguna de tus
+          fuentes actuales lo es; si añades una, márcala con <code>"type": "propaganda"</code> en feeds.json.</dd>
+        <dt><span class="tag publico">Medio público</span></dt>
+        <dd>Radiotelevisiones públicas (RTVE, BBC). Su dirección depende de las instituciones, y la percepción
+          de su línea cambia según quién gobierne, así que no se les asigna una posición.</dd>
+      </dl>
+
+      <h3>Cómo lo cuentan otros</h3>
+      <p>En las noticias políticas, la app busca la misma noticia en otros medios para que puedas comparar
+        enfoques. Se emparejan por las palabras del titular, así que puede fallar alguna vez.</p>
+    </div>
+  </dialog>
 
   <script src="app.js" defer></script>
 </body>

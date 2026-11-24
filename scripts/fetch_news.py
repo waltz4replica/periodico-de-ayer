@@ -50,9 +50,23 @@ NS = {
 # para no confundirlos con información.
 KIND_RULES = [
     ("patrocinado", re.compile(
-        r"/(branded|brand-?content|patrocinad[oa]s?|contenido-patrocinado|publirreportaje|"
-        r"escaparate|promociones|sponsored|partner-content)(/|-|$)|^(patrocinado|publirreportaje|"
+        r"/(branded|branded-content|brand-?content|bc|brands|patrocinad[oa]s?|contenido-patrocinado|"
+        r"publirreportaje|escaparate|promociones|sponsored|partner-content)(/|-|$)|^(patrocinado|publirreportaje|"
         r"contenido patrocinado|sponsored)\b", re.I)),
+    # Ofertas, chollos y guías de compra
+    ("oferta", re.compile(
+        r"/(compras|ofertas?|ofertas-descuentos|chollos?|descuentos?|showroom|guias?-de-compras?|favorito)(/|-|$)|"
+        r"(xataka|xatakamovil|genbeta|3djuegos|vidaextra)\.com/seleccion/|"
+        r"\bchollos?\b|\b(en|de|su) oferta\b|\bofert[oó]n\b|\d+ ?% de descuento|descuentos? de hasta|"
+        r"con descuento|a mitad de precio|precio (m[ií]nimo|hist[oó]rico|de risa|de outlet)|desploma su precio|"
+        r"baja de precio|c[oó]digo (de )?descuento|c[oó]digo promocional|\bcup[oó]n(es)?\b|% off\b|\bdeals?\b|"
+        r"black friday.*\b(ofertas?|descuentos?|rebaj|precio|regalo|ahorr|chollo)|"
+        r"\b(ofertas?|descuentos?|rebaj\w*|chollos?)\b.*black friday|para regalar|calidad[- ]precio", re.I)),
+    # Poco relevante: loterías, sorteos, horóscopo
+    ("menor", re.compile(
+        r"/(loterias?|horoscopo|sorteos?)(/|-|$)|^hor[oó]scopo|\bloter[ií]a (nacional|de navidad)\b.*\b(comprobar|"
+        r"comprueba|premiados|resultados?)|\b(comprobar|comprueba)\b.*\b(sorteo|loter[ií]a|primitiva|bonoloto|"
+        r"euromillones)", re.I)),
     ("opinion", re.compile(
         r"/(opinion|opiniones|tribuna|tribunas|editorial|editoriales|columnas?|firmas|"
         r"columnistas|blogs?|cartas-al-director|el-mirador|analisis-opinion)(/|-|$)|"

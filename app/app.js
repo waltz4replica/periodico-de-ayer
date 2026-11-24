@@ -56,7 +56,7 @@ const store = {
   },
 };
 
-const DEFAULT_SETTINGS = { zoom: 1, english: true, sponsored: true };
+const DEFAULT_SETTINGS = { zoom: 1, english: true, hideAds: true };
 
 const state = {
   index: null,
@@ -73,6 +73,14 @@ const state = {
 };
 
 let saved = store.get("saved", {});        // id -> noticia
+
+/* Lo que la persona ha pedido no ver («No me interesa») */
+let muted = { dismissed: {}, terms: [], sources: [], allow: [], labels: {}, ...store.get("muted", {}) };
+const termLabel = (t) => muted.labels?.[t] || t;
+function saveMuted() {
+  store.set("muted", muted);
+  reasonCache = { edition: null, map: new Map() };
+}
 let read = new Set(store.get("read", []));  // ids leídas
 
 function markRead(id) {
@@ -146,6 +154,7 @@ const ICONS = {
   down: '<path d="m6 9 6 6 6-6"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
   refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>',
+  ocultas: '<path d="M3.5 3.5l17 17M10.6 6.1A9.6 9.6 0 0 1 12 6c5 0 8.4 4.2 9.4 6-.4.8-1.3 2-2.5 3.2M6.4 7.7C4.5 9 3.1 11 2.6 12c1 1.8 4.4 6 9.4 6 1.7 0 3.2-.5 4.5-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
 };
 
 /* ---------- datos ---------- */
@@ -175,11 +184,94 @@ function catsOf(it) {
 }
 const inCat = (it, cat) => cat === "all" || catsOf(it).includes(cat);
 
-/** Noticias de la edición que se pueden mostrar según los ajustes. */
+/* ---------- noticias ocultas ---------- */
+
+const AD_KINDS = { patrocinado: "Publicidad", oferta: "Oferta o chollo", menor: "Poco relevante" };
+
+let reasonCache = { edition: null, map: new Map() };
+
+/** Motivo por el que una noticia se oculta, o "" si se muestra. */
+function hiddenReason(it) {
+  if (reasonCache.edition !== state.edition) reasonCache = { edition: state.edition, map: new Map() };
+  const cache = reasonCache.map;
+  if (cache.has(it.id)) return cache.get(it.id);
+  let reason = "";
+  if (muted.dismissed[it.id]) reason = "No te interesa";
+  else if (muted.allow.includes(it.id)) reason = "";
+  else if (state.settings.hideAds && AD_KINDS[it.kind]) reason = AD_KINDS[it.kind];
+  else if (muted.sources.includes(it.source)) reason = `Medio silenciado: ${sourceById(it.source).name}`;
+  else {
+    const tok = tokens(it.title);
+    const term = muted.terms.find((t) => tok.has(t));
+    if (term) reason = `Tema silenciado: ${termLabel(term)}`;
+    else {
+      for (const d of Object.values(muted.dismissed)) {
+        const dt = tokens(d.title);
+        let shared = 0;
+        for (const w of tok) if (dt.has(w)) shared++;
+        if (shared >= 3 && shared / Math.min(tok.size, dt.size || 1) >= 0.5) { reason = "Parecida a una que ocultaste"; break; }
+      }
+    }
+  }
+  cache.set(it.id, reason);
+  return reason;
+}
+
+const langOk = (i) => state.settings.english || (sourceById(i.source).lang || "es") === "es";
+
+/** Noticias de la edición que se pueden mostrar según los ajustes y lo silenciado. */
 function visibleItems() {
-  const { english, sponsored } = state.settings;
-  return (state.edition?.items || []).filter((i) =>
-    (english || (sourceById(i.source).lang || "es") === "es") && (sponsored || i.kind !== "patrocinado"));
+  return (state.edition?.items || []).filter((i) => langOk(i) && !hiddenReason(i));
+}
+
+const hiddenItems = () => (state.edition?.items || []).filter((i) => langOk(i) && hiddenReason(i));
+
+/** Palabras del titular que se pueden silenciar, primero nombres propios: [normalizada, tal cual]. */
+function suggestTerms(title) {
+  const words = title.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const proper = words.slice(1).filter((w) => /^\p{Lu}/u.test(w));
+  const rest = words.filter((w) => !proper.includes(w)).sort((a, b) => b.length - a.length);
+  const out = [];
+  for (const w of [...proper, ...rest]) {
+    const n = normalize(w);
+    if (n.length > 3 && !STOP.has(n) && !out.some(([x]) => x === n)) out.push([n, w]);
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
+function openDismissSheet(it, node) {
+  const src = sourceById(it.source);
+  const done = (msg, undo) => {
+    saveMuted();
+    els.sheet.close();
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+    toast(msg, { label: "Deshacer", run: () => { undo(); saveMuted(); render(); window.scrollTo(0, y); } });
+  };
+  const option = (label, hint, run) => el("button", { class: "option", onclick: run },
+    el("span", {}, label, hint ? el("small", {}, hint) : null));
+
+  openSheet("No me interesa", [
+    el("p", { class: "sheet-note" }, "Lo que ocultes queda guardado en «Ocultas», en el menú, por si quieres recuperarlo."),
+    el("div", { class: "option-list" },
+      option("Ocultar esta noticia", "También se ocultarán las que cuenten lo mismo", () => {
+        muted.dismissed[it.id] = { id: it.id, title: it.title, source: it.source, link: it.link, date: it.date };
+        const ids = Object.keys(muted.dismissed);
+        if (ids.length > 400) delete muted.dismissed[ids[0]];
+        done("Noticia ocultada", () => { delete muted.dismissed[it.id]; });
+      }),
+      ...suggestTerms(it.title).map(([term, label]) => option(`Menos sobre «${label}»`, "Oculta las noticias con esta palabra en el titular", () => {
+        muted.terms.push(term);
+        muted.labels = { ...muted.labels, [term]: label };
+        done(`Ocultaremos noticias sobre «${label}»`, () => { muted.terms = muted.terms.filter((t) => t !== term); });
+      })),
+      option(`Menos de ${src.name}`, "Oculta todas las noticias de este medio", () => {
+        muted.sources.push(it.source);
+        done(`Ocultaremos ${src.name}`, () => { muted.sources = muted.sources.filter((s) => s !== it.source); });
+      })),
+  ]);
 }
 
 const countIn = (cat) => visibleItems().filter((i) => inCat(i, cat)).length;
@@ -214,7 +306,7 @@ const leanPos = (id) => LEANS.findIndex((l) => l.id === id);
 const leanName = (id) => LEANS.find((l) => l.id === id)?.name || "";
 const LEAN_CATS = new Set(["politica", "actualidad", "all"]);
 const TYPE_TAGS = { propaganda: "Propaganda", publico: "Medio público", agencia: "Agencia" };
-const KIND_TAGS = { opinion: "Opinión", patrocinado: "Patrocinado" };
+const KIND_TAGS = { opinion: "Opinión", patrocinado: "Patrocinado", oferta: "Oferta", menor: "Poco relevante" };
 
 function leanBar(src, mini = false) {
   if (!src.lean) return null;
@@ -269,7 +361,7 @@ function versionsOf(it) {
 
 /* ---------- tarjeta de noticia ---------- */
 
-function storyNode(it, { lead = false, compact = false, versions = true } = {}) {
+function storyNode(it, { lead = false, compact = false, versions = true, hidden = false } = {}) {
   const src = sourceById(it.source);
   const isSaved = Boolean(saved[it.id]);
   const hasImg = Boolean(it.image);
@@ -292,6 +384,23 @@ function storyNode(it, { lead = false, compact = false, versions = true } = {}) 
     "aria-pressed": String(isSaved),
     onclick: (e) => { e.preventDefault(); toggleSave(it, e.currentTarget); },
   }, svg(ICONS.guardadas));
+
+  const dismissBtn = hidden ? null : el("button", {
+    class: "icon-btn small dismiss", "aria-label": "No me interesa",
+    onclick: (e) => { e.preventDefault(); openDismissSheet(it, e.currentTarget.closest(".story")); },
+  }, svg(ICONS.ocultas));
+
+  const reasonRow = hidden ? el("div", { class: "hidden-reason" },
+    el("span", {}, hiddenReason(it)),
+    el("button", {
+      class: "btn ghost small", onclick: () => {
+        if (muted.dismissed[it.id]) delete muted.dismissed[it.id];
+        else muted.allow = [...muted.allow.slice(-300), it.id];
+        saveMuted();
+        render();
+        toast("Volverá a aparecer en su sección");
+      },
+    }, "Volver a mostrar")) : null;
 
   const link = el("a", {
     href: it.link, target: "_blank", rel: "noopener noreferrer",
@@ -324,7 +433,7 @@ function storyNode(it, { lead = false, compact = false, versions = true } = {}) 
   return el("article", {
     class: ["story", lead && "lead", compact && "compact", !hasImg && "no-img", read.has(it.id) && "read"]
       .filter(Boolean).join(" "),
-  }, link, others, saveBtn);
+  }, link, others, reasonRow, dismissBtn, saveBtn);
 }
 
 /** Alterna medios para que ninguno acapare la lista; la primera con foto va de destacada. */
@@ -359,6 +468,7 @@ function parseRoute() {
     case "medio": return { name: "source", source: parts[1] };
     case "etiquetas": return { name: "labels" };
     case "ajustes": return { name: "settings" };
+    case "ocultas": return { name: "hidden" };
     default: return { name: "home" };
   }
 }
@@ -429,7 +539,8 @@ function renderDrawer() {
       svg(ICONS.hemeroteca), el("span", {}, "Hemeroteca"), el("span", { class: "count" }, dayLabel(state.day || dayKey(new Date())))),
     item("sources", "Medios y fuentes", "#/medios", { icon: ICONS.medios }),
     item("labels", "Cómo leer las etiquetas", "#/etiquetas", { icon: ICONS.etiquetas }),
-    item("settings", "Ajustes", "#/ajustes", { icon: ICONS.ajustes }));
+    item("settings", "Ajustes", "#/ajustes", { icon: ICONS.ajustes }),
+    item("hidden", "Ocultas", "#/ocultas", { icon: ICONS.ocultas, count: hiddenItems().length }));
 
   els.drawerBody.replaceChildren(...groups, mine);
 }
@@ -673,7 +784,7 @@ function pageSection() {
 
 function pageSource() {
   const src = sourceById(state.route.source);
-  const intro = el("p", { class: "section-intro" },
+  const intro = el("p", { class: "section-intro row" },
     src.lean ? el("span", { class: "intro-lean" }, leanBar(src), leanName(src.lean) +
       (src.lean_basis === "estimacion" ? " (estimación)" : " (según estudios)")) : null,
     TYPE_TAGS[src.type] ? el("span", { class: "tag " + src.type }, TYPE_TAGS[src.type]) : null,
@@ -816,7 +927,8 @@ function pageSettings() {
         el("div", { class: "segmented", role: "group", "aria-label": "Tamaño de la letra" }, ...sizes.map(([v, label]) =>
           el("button", { "aria-pressed": String(s.zoom === v), onclick: () => setSetting("zoom", v) }, label)))),
       toggle("english", "Mostrar noticias en inglés", "BleepingComputer, The Hacker News, VGC y otras fuentes en inglés"),
-      toggle("sponsored", "Mostrar contenido patrocinado", "Piezas pagadas por marcas; siempre llevan la etiqueta «Patrocinado»"),
+      toggle("hideAds", "Ocultar publicidad, ofertas y noticias poco relevantes",
+        "Contenido patrocinado, chollos, guías de compra y loterías. Siguen disponibles en «Ocultas», en el menú."),
 
       el("h3", {}, "Actualización"),
       el("div", { class: "setting column" },
@@ -836,7 +948,50 @@ function pageSettings() {
   ];
 }
 
-const TITLES = { home: "Mi Periódico", saved: "Guardadas", sources: "Medios", labels: "Etiquetas", settings: "Ajustes" };
+function pageHidden() {
+  const items = hiddenItems();
+  state.list = [];
+  const unmute = (label, run) => el("button", { class: "pill", onclick: () => { run(); saveMuted(); render(); },
+    "aria-label": `Dejar de ocultar ${label}` }, label, svg(ICONS.close));
+  const learned = muted.terms.length || muted.sources.length;
+  const past = Object.values(muted.dismissed).filter((d) => !(state.edition?.items || []).some((i) => i.id === d.id));
+
+  const byReason = new Map();
+  for (const it of items) {
+    const r = hiddenReason(it).replace(/:.*/, "");
+    if (!byReason.has(r)) byReason.set(r, []);
+    byReason.get(r).push(it);
+  }
+
+  return [
+    el("div", { class: "section-head" },
+      el("h2", { class: "section-title" }, "Ocultas"),
+      el("p", { class: "section-intro" },
+        "Lo que la app no te muestra: publicidad y ofertas (si lo tienes activado en ",
+        el("a", { href: "#/ajustes" }, "Ajustes"), ") y lo que marcaste con «No me interesa». Puedes recuperar cualquier cosa.")),
+    el("section", { class: "block" },
+      el("div", { class: "block-head" }, el("h2", {}, "Lo que has silenciado")),
+      learned ? el("div", { class: "pills" },
+        ...muted.terms.map((t) => unmute(`Tema: ${termLabel(t)}`, () => { muted.terms = muted.terms.filter((x) => x !== t); })),
+        ...muted.sources.map((s) => unmute(`Medio: ${sourceById(s).name}`, () => { muted.sources = muted.sources.filter((x) => x !== s); })))
+        : el("p", { class: "section-intro" }, "Nada todavía. Pulsa el ojo tachado de una noticia para ver menos como ella."),
+      past.length ? el("p", { class: "section-intro" }, `Además, ${past.length} noticias de días anteriores marcadas como «No me interesa» siguen ayudando a ocultar las parecidas.`) : null,
+      learned || past.length ? el("button", {
+        class: "btn ghost", style: "margin-top:12px",
+        onclick: () => {
+          if (!confirm("¿Olvidar todo lo que has ocultado y silenciado?")) return;
+          muted = { dismissed: {}, terms: [], sources: [], allow: [], labels: {} };
+          saveMuted(); render();
+        },
+      }, "Olvidar todo") : null),
+    ...[...byReason.entries()].map(([reason, list]) => el("section", { class: "block" },
+      el("div", { class: "block-head" }, el("h2", {}, `${reason} · ${list.length}`)),
+      el("div", { class: "list" }, ...list.map((it) => storyNode(it, { compact: true, hidden: true }))))),
+    !items.length ? emptyNode("No hay nada oculto", "En esta edición no se ha ocultado ninguna noticia.") : null,
+  ];
+}
+
+const TITLES = { home: "Mi Periódico", saved: "Guardadas", sources: "Medios", labels: "Etiquetas", settings: "Ajustes", hidden: "Ocultas" };
 
 function render() {
   const r = state.route;
@@ -853,6 +1008,7 @@ function render() {
   else if (r.name === "sources") nodes = pageSources();
   else if (r.name === "labels") nodes = pageLabels();
   else if (r.name === "settings") nodes = pageSettings();
+  else if (r.name === "hidden") nodes = pageHidden();
   else nodes = pageHome();
 
   els.appbarTitle.textContent = state.query ? "Buscar"

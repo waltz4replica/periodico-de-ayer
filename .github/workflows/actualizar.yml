@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url || steps.deploy_retry.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,21 +38,23 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Descargar noticias
-        run: python scripts/fetch_news.py
-
-      - name: Guardar la edición en el repositorio
+      - name: Descargar noticias y guardar la edición
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/data
-          if git diff --cached --quiet; then
-            echo "Sin cambios"
-          else
-            git commit -m "Edición del $(TZ=Europe/Madrid date +%F\ %H:%M)"
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
+          # Si otra ejecución guardó noticias mientras tanto, se regenera sobre la versión
+          # más reciente (el script mezcla con lo ya guardado, así que no se pierde nada).
+          for intento in 1 2 3; do
+            git fetch -q origin "${GITHUB_REF_NAME}"
+            git reset -q --hard "origin/${GITHUB_REF_NAME}"
+            python scripts/fetch_news.py
+            git add app/data
+            if git diff --cached --quiet; then echo "Sin cambios"; break; fi
+            git commit -q -m "Edición del $(TZ=Europe/Madrid date +%F\ %H:%M)"
+            if git push -q origin "HEAD:${GITHUB_REF_NAME}"; then break; fi
+            echo "Otra ejecución guardó antes; reintento ($intento)…"
+            sleep 5
+          done
 
       - uses: actions/configure-pages@v5
 
@@ -60,5 +62,15 @@ jobs:
         with:
           path: app
 
+      # GitHub Pages a veces falla de forma temporal: se reintenta una vez
       - id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Esperar antes de reintentar la publicación
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 30
+
+      - id: deploy_retry
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4

@@ -1,6 +1,6 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-25T17:04:38+00:00",
+ "updated": "2026-11-25T22:22:39+00:00",
  "categories": [
   {
    "id": "actualidad",
@@ -83,7 +83,7 @@
    "lean": "centroderecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 27
+   "count": 24
   },
   {
    "id": "abc",
@@ -153,7 +153,7 @@
    "lean": "izquierda",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 28
+   "count": 32
   },
   {
    "id": "infolibre",
@@ -181,7 +181,7 @@
    "lean": "centroderecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 10
+   "count": 9
   },
   {
    "id": "elespanol",
@@ -209,7 +209,7 @@
    "lean": "derecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 37
+   "count": 39
   },
   {
    "id": "rtve",
@@ -221,7 +221,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 37
+   "count": 38
   },
   {
    "id": "europapress",
@@ -261,7 +261,7 @@
    "lean": "centroderecha",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 33
+   "count": 37
   },
   {
    "id": "marca",
@@ -330,7 +330,7 @@
    "color": "#2b7a3d",
    "lang": "es",
    "ok": true,
-   "count": 14
+   "count": 12
   },
   {
    "id": "unaaldia",
@@ -374,7 +374,7 @@
    "color": "#e04f2e",
    "lang": "en",
    "ok": true,
-   "count": 19
+   "count": 16
   },
   {
    "id": "krebs",
@@ -429,7 +429,7 @@
    "color": "#c62828",
    "lang": "es",
    "ok": true,
-   "count": 30
+   "count": 28
   },
   {
    "id": "3djuegos",
@@ -479,7 +479,7 @@
  "days": [
   {
    "date": "2026-11-25",
-   "count": 1204
+   "count": 1443
   },
   {
    "date": "2026-11-24",

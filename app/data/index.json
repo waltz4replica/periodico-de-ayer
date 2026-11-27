@@ -1,6 +1,6 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-26T22:14:14+00:00",
+ "updated": "2026-11-27T02:47:29+00:00",
  "categories": [
   {
    "id": "actualidad",
@@ -83,7 +83,7 @@
    "lean": "centroderecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 24
+   "count": 32
   },
   {
    "id": "abc",
@@ -153,7 +153,7 @@
    "lean": "izquierda",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 30
+   "count": 31
   },
   {
    "id": "infolibre",
@@ -181,7 +181,7 @@
    "lean": "centroderecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 11
+   "count": 12
   },
   {
    "id": "elespanol",
@@ -195,7 +195,7 @@
    "lean": "centroderecha",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 16
+   "count": 21
   },
   {
    "id": "larazon",
@@ -221,7 +221,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 39
+   "count": 26
   },
   {
    "id": "europapress",
@@ -247,7 +247,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 20
+   "count": 16
   },
   {
    "id": "expansion",
@@ -261,7 +261,7 @@
    "lean": "centroderecha",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 37
+   "count": 38
   },
   {
    "id": "marca",
@@ -286,7 +286,7 @@
    "lean": "centroizquierda",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 4
+   "count": 3
   },
   {
    "id": "xataka",
@@ -319,7 +319,7 @@
    "color": "#111111",
    "lang": "es",
    "ok": true,
-   "count": 15
+   "count": 14
   },
   {
    "id": "xatakamovil",
@@ -330,7 +330,7 @@
    "color": "#2b7a3d",
    "lang": "es",
    "ok": true,
-   "count": 11
+   "count": 8
   },
   {
    "id": "unaaldia",
@@ -363,7 +363,7 @@
    "color": "#1d5c9a",
    "lang": "en",
    "ok": true,
-   "count": 12
+   "count": 11
   },
   {
    "id": "thehackernews",
@@ -374,7 +374,7 @@
    "color": "#e04f2e",
    "lang": "en",
    "ok": true,
-   "count": 12
+   "count": 7
   },
   {
    "id": "krebs",
@@ -429,7 +429,7 @@
    "color": "#c62828",
    "lang": "es",
    "ok": true,
-   "count": 25
+   "count": 20
   },
   {
    "id": "3djuegos",
@@ -477,6 +477,10 @@
   }
  ],
  "days": [
+  {
+   "date": "2026-11-27",
+   "count": 653
+  },
   {
    "date": "2026-11-26",
    "count": 1445

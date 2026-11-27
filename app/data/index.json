@@ -1,6 +1,6 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-27T16:31:53+00:00",
+ "updated": "2026-11-27T21:54:10+00:00",
  "categories": [
   {
    "id": "actualidad",
@@ -83,7 +83,7 @@
    "lean": "centroderecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 28
+   "count": 30
   },
   {
    "id": "abc",
@@ -139,7 +139,7 @@
    "lean": "izquierda",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 39
+   "count": 40
   },
   {
    "id": "publico",
@@ -153,7 +153,7 @@
    "lean": "izquierda",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 29
+   "count": 36
   },
   {
    "id": "infolibre",
@@ -167,7 +167,7 @@
    "lean": "izquierda",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 28
+   "count": 23
   },
   {
    "id": "elconfidencial",
@@ -195,7 +195,7 @@
    "lean": "centroderecha",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 23
+   "count": 17
   },
   {
    "id": "larazon",
@@ -209,7 +209,7 @@
    "lean": "derecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 40
+   "count": 39
   },
   {
    "id": "rtve",
@@ -221,7 +221,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 40
+   "count": 38
   },
   {
    "id": "europapress",
@@ -247,7 +247,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 19
+   "count": 18
   },
   {
    "id": "expansion",
@@ -261,7 +261,7 @@
    "lean": "centroderecha",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 37
+   "count": 40
   },
   {
    "id": "marca",
@@ -272,7 +272,7 @@
    "color": "#d6001c",
    "lang": "es",
    "ok": true,
-   "count": 40
+   "count": 28
   },
   {
    "id": "elpaistec",
@@ -319,7 +319,7 @@
    "color": "#111111",
    "lang": "es",
    "ok": true,
-   "count": 12
+   "count": 15
   },
   {
    "id": "xatakamovil",
@@ -330,7 +330,7 @@
    "color": "#2b7a3d",
    "lang": "es",
    "ok": true,
-   "count": 12
+   "count": 11
   },
   {
    "id": "unaaldia",
@@ -363,7 +363,7 @@
    "color": "#1d5c9a",
    "lang": "en",
    "ok": true,
-   "count": 13
+   "count": 15
   },
   {
    "id": "thehackernews",
@@ -374,7 +374,7 @@
    "color": "#e04f2e",
    "lang": "en",
    "ok": true,
-   "count": 11
+   "count": 10
   },
   {
    "id": "krebs",
@@ -418,7 +418,7 @@
    "color": "#2a6db0",
    "lang": "en",
    "ok": true,
-   "count": 2
+   "count": 1
   },
   {
    "id": "vandal",
@@ -429,7 +429,7 @@
    "color": "#c62828",
    "lang": "es",
    "ok": true,
-   "count": 26
+   "count": 29
   },
   {
    "id": "3djuegos",
@@ -451,7 +451,7 @@
    "color": "#1a4d8f",
    "lang": "es",
    "ok": true,
-   "count": 3
+   "count": 2
   },
   {
    "id": "insidergaming",
@@ -479,7 +479,7 @@
  "days": [
   {
    "date": "2026-11-27",
-   "count": 1123
+   "count": 1366
   },
   {
    "date": "2026-11-26",

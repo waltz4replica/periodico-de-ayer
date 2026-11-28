@@ -1,6 +1,6 @@
 {
  "title": "Mi Periódico",
- "updated": "2026-11-27T21:54:10+00:00",
+ "updated": "2026-11-28T02:37:42+00:00",
  "categories": [
   {
    "id": "actualidad",
@@ -83,7 +83,7 @@
    "lean": "centroderecha",
    "lean_basis": "estudio",
    "ok": true,
-   "count": 30
+   "count": 26
   },
   {
    "id": "abc",
@@ -153,7 +153,7 @@
    "lean": "izquierda",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 36
+   "count": 31
   },
   {
    "id": "infolibre",
@@ -195,7 +195,7 @@
    "lean": "centroderecha",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 17
+   "count": 16
   },
   {
    "id": "larazon",
@@ -221,7 +221,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 38
+   "count": 35
   },
   {
    "id": "europapress",
@@ -247,7 +247,7 @@
    "lang": "es",
    "type": "publico",
    "ok": true,
-   "count": 18
+   "count": 14
   },
   {
    "id": "expansion",
@@ -261,7 +261,7 @@
    "lean": "centroderecha",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 40
+   "count": 23
   },
   {
    "id": "marca",
@@ -271,8 +271,8 @@
    ],
    "color": "#d6001c",
    "lang": "es",
-   "ok": true,
-   "count": 28
+   "ok": false,
+   "error": "sin noticias recientes (la más nueva: 2026-11-26T13:25+00:00)"
   },
   {
    "id": "elpaistec",
@@ -286,7 +286,7 @@
    "lean": "centroizquierda",
    "lean_basis": "estimacion",
    "ok": true,
-   "count": 5
+   "count": 3
   },
   {
    "id": "xataka",
@@ -308,7 +308,7 @@
    "color": "#e5352b",
    "lang": "es",
    "ok": true,
-   "count": 16
+   "count": 13
   },
   {
    "id": "hipertextual",
@@ -319,7 +319,7 @@
    "color": "#111111",
    "lang": "es",
    "ok": true,
-   "count": 15
+   "count": 13
   },
   {
    "id": "xatakamovil",
@@ -330,7 +330,7 @@
    "color": "#2b7a3d",
    "lang": "es",
    "ok": true,
-   "count": 11
+   "count": 8
   },
   {
    "id": "unaaldia",
@@ -374,7 +374,7 @@
    "color": "#e04f2e",
    "lang": "en",
    "ok": true,
-   "count": 10
+   "count": 8
   },
   {
    "id": "krebs",
@@ -384,8 +384,8 @@
    ],
    "color": "#444444",
    "lang": "en",
-   "ok": true,
-   "count": 1
+   "ok": false,
+   "error": "sin noticias recientes (la más nueva: 2026-11-21T00:36+00:00)"
   },
   {
    "id": "therecord",
@@ -406,8 +406,8 @@
    ],
    "color": "#8e1b1b",
    "lang": "en",
-   "ok": true,
-   "count": 10
+   "ok": false,
+   "error": "mismatched tag: line 93, column 2; sin noticias recientes (la más nueva: sin fecha)"
   },
   {
    "id": "hibp",
@@ -429,7 +429,7 @@
    "color": "#c62828",
    "lang": "es",
    "ok": true,
-   "count": 29
+   "count": 24
   },
   {
    "id": "3djuegos",
@@ -477,6 +477,10 @@
   }
  ],
  "days": [
+  {
+   "date": "2026-11-28",
+   "count": 577
+  },
   {
    "date": "2026-11-27",
    "count": 1366
